@@ -1,0 +1,58 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Butacas · {{ screening.movie.title }}{% endblock %}
+
+{% block content %}
+<section class="shell section narrow booking-step">
+    <div class="backline"><a href="{{ screening.movie.get_absolute_url }}">← {{ screening.movie.title }}</a></div>
+    <div class="section-heading split-heading">
+        <div><p class="eyebrow">Paso 1 de 3</p><h1>Elige tus butacas</h1></div>
+        <div class="session-summary"><strong>{{ screening.start_at|date:"j M · H:i" }}</strong><span>{{ screening.room.name }}</span></div>
+    </div>
+
+    <form method="post" action="{% url 'core:booking_start' %}" id="seat-form" data-price="{{ screening.base_price }}" data-currency="{{ site_settings.currency_symbol }}">
+        {% csrf_token %}
+        <input type="hidden" name="screening_id" value="{{ screening.pk }}">
+        <div class="seat-map-scroll">
+            <div class="seat-map">
+                <div class="screen">PANTALLA</div>
+                {% for row_name, items in seat_rows %}
+                    <div class="seat-row">
+                        <span class="row-label">{{ row_name }}</span>
+                        <div class="seat-row-items">
+                            {% for item in items %}
+                                {% if not item.seat.enabled %}
+                                    <span class="seat spacer" aria-hidden="true"></span>
+                                {% else %}
+                                    <input class="seat-input" type="checkbox" name="seats" value="{{ item.seat.pk }}" id="seat-{{ item.seat.pk }}" {% if item.occupied %}disabled{% endif %}>
+                                    <label class="seat {% if item.occupied %}occupied{% endif %} {% if item.seat.seat_type == 'vip' %}vip{% endif %}" for="seat-{{ item.seat.pk }}" title="Butaca {{ item.seat.label }}">
+                                        {{ item.seat.number }}
+                                    </label>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="row-label">{{ row_name }}</span>
+                    </div>
+                {% empty %}
+                    <div class="empty-state">Esta sala todavía no tiene butacas configuradas.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="seat-legend">
+            <span><i class="legend-seat"></i> Libre</span>
+            <span><i class="legend-seat selected"></i> Seleccionada</span>
+            <span><i class="legend-seat occupied"></i> Ocupada</span>
+            <span><i class="legend-seat vip"></i> VIP</span>
+        </div>
+
+        <div class="sticky-action">
+            <div><strong id="selected-count">0 butacas</strong><span id="selected-total">0,00{{ site_settings.currency_symbol }}</span></div>
+            <button class="button" id="seat-submit" type="submit" disabled>Continuar</button>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'js/seats.js' %}"></script>{% endblock %}

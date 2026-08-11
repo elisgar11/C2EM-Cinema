@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+
+{% block title %}Reserva confirmada · {{ booking.code }}{% endblock %}
+
+{% block content %}
+<section class="shell section narrow confirmation">
+    <div class="success-mark">✓</div>
+    <p class="eyebrow">Reserva confirmada</p>
+    <h1>Nos vemos en la sala.</h1>
+    <p class="lead">Tu código es <strong>{{ booking.code }}</strong>. Guarda la entrada para tener todos los datos a mano.</p>
+    <div class="confirmation-actions">
+        <a class="button" href="{% url 'core:ticket' booking.ticket_token %}">Ver entrada</a>
+        <a class="button secondary" href="{% url 'core:home' %}">Volver a cartelera</a>
+    </div>
+</section>
+{% endblock %}
