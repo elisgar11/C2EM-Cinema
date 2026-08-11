@@ -1,0 +1,33 @@
+{% extends "core/base.html" %}
+{% load cinema_tags %}
+
+{% block title %}Confirmar reserva · {{ summary.screening.movie.title }}{% endblock %}
+
+{% block content %}
+<section class="shell section narrow booking-step">
+    <div class="section-heading"><div><p class="eyebrow">Paso 3 de 3</p><h1>Confirma tu reserva</h1></div></div>
+
+    <div class="checkout-grid">
+        <div class="summary-card">
+            <p class="eyebrow">Sesión</p>
+            <h2>{{ summary.screening.movie.title }}</h2>
+            <p>{{ summary.screening.start_at|date:"l j \d\e F · H:i" }} · {{ summary.screening.room.name }}</p>
+            <hr>
+            <div class="summary-line"><span>Butacas {% for seat in summary.seats %}{{ seat.label }}{% if not forloop.last %}, {% endif %}{% endfor %}</span><strong>{{ summary.seat_total }}{{ site_settings.currency_symbol }}</strong></div>
+            {% for line in summary.product_lines %}<div class="summary-line"><span>{{ line.quantity }}× {{ line.item.name }}</span><strong>{{ line.subtotal }}{{ site_settings.currency_symbol }}</strong></div>{% endfor %}
+            {% for line in summary.pack_lines %}<div class="summary-line"><span>{{ line.quantity }}× {{ line.item.name }}</span><strong>{{ line.subtotal }}{{ site_settings.currency_symbol }}</strong></div>{% endfor %}
+            <hr>
+            <div class="summary-total"><span>Total</span><strong>{{ summary.total }}{{ site_settings.currency_symbol }}</strong></div>
+        </div>
+
+        <form class="customer-form" method="post">
+            {% csrf_token %}
+            <label>Nombre <span>*</span><input type="text" name="customer_name" maxlength="150" required autocomplete="name" value="{{ customer_name|default:'' }}" placeholder="¿A nombre de quién?"></label>
+            <label>Notas <textarea name="notes" rows="4" placeholder="Opcional: alguna petición o comentario">{{ notes|default:'' }}</textarea></label>
+            <p class="form-note">No se realizará ningún pago real. Al confirmar, las butacas quedarán reservadas.</p>
+            <button class="button wide" type="submit">Confirmar reserva · {{ summary.total }}{{ site_settings.currency_symbol }}</button>
+        </form>
+    </div>
+</section>
+<section class="shell section narrow ad-section">{% show_ad "checkout" %}</section>
+{% endblock %}

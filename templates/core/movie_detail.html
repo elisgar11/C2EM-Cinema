@@ -1,0 +1,44 @@
+{% extends "core/base.html" %}
+{% load cinema_tags %}
+
+{% block title %}{{ movie.title }} · {{ site_settings.cinema_name }}{% endblock %}
+
+{% block content %}
+<section class="movie-hero shell">
+    <div class="detail-poster poster">
+        {% if movie.poster %}<img src="{{ movie.poster.url }}" alt="Póster de {{ movie.title }}">{% else %}<span class="poster-placeholder">{{ movie.title|slice:":1" }}</span>{% endif %}
+    </div>
+    <div class="movie-copy">
+        <p class="eyebrow">En cartelera</p>
+        <h1>{{ movie.title }}</h1>
+        <p class="meta">{{ movie.duration_minutes }} min{% if movie.age_rating %} · {{ movie.age_rating }}{% endif %}</p>
+        {% if movie.description %}<p class="lead">{{ movie.description }}</p>{% endif %}
+        {% if movie.trailer_url %}<a class="text-link" href="{{ movie.trailer_url }}" target="_blank" rel="noopener">Ver tráiler ↗</a>{% endif %}
+    </div>
+</section>
+
+<section class="shell section narrow">
+    <div class="section-heading"><div><p class="eyebrow">Horarios</p><h2>Elige una sesión</h2></div></div>
+    {% if screening_days %}
+        <div class="screening-days">
+            {% for day, screenings in screening_days %}
+                <div class="screening-day">
+                    <h3>{{ day|date:"l j \d\e F" }}</h3>
+                    <div class="screening-buttons">
+                        {% for screening in screenings %}
+                            <a class="screening-button" href="{% url 'core:screening_detail' screening.pk %}">
+                                <strong>{{ screening.start_at|date:"H:i" }}</strong>
+                                <span>{{ screening.room.name }} · {{ screening.base_price }}{{ site_settings.currency_symbol }}</span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">No hay próximas sesiones disponibles.</div>
+    {% endif %}
+</section>
+
+<section class="shell section ad-section">{% show_ad "movie" %}</section>
+{% endblock %}

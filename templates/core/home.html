@@ -1,0 +1,62 @@
+{% extends "core/base.html" %}
+{% load cinema_tags %}
+
+{% block content %}
+<section class="hero shell">
+    <p class="eyebrow">Cine privado</p>
+    <h1>{{ site_settings.cinema_name|default:"Mi cine" }}</h1>
+    {% if site_settings.tagline %}<p class="hero-tagline">{{ site_settings.tagline }}</p>{% endif %}
+    {% if site_settings.home_message %}<p class="hero-copy">{{ site_settings.home_message }}</p>{% endif %}
+</section>
+
+<section class="shell section">
+    <div class="section-heading">
+        <div><p class="eyebrow">Ahora</p><h2>Cartelera</h2></div>
+    </div>
+    {% if movies %}
+        <div class="movie-grid">
+            {% for movie in movies %}
+                <article class="movie-card">
+                    <a class="poster" href="{{ movie.get_absolute_url }}">
+                        {% if movie.poster %}
+                            <img src="{{ movie.poster.url }}" alt="Póster de {{ movie.title }}">
+                        {% else %}
+                            <span class="poster-placeholder">{{ movie.title|slice:":1" }}</span>
+                        {% endif %}
+                    </a>
+                    <div class="movie-card-body">
+                        <h3><a href="{{ movie.get_absolute_url }}">{{ movie.title }}</a></h3>
+                        <p>{{ movie.duration_minutes }} min{% if movie.age_rating %} · {{ movie.age_rating }}{% endif %}</p>
+                        {% if movie.upcoming_screenings %}
+                            <a class="session-pill" href="{% url 'core:screening_detail' movie.upcoming_screenings.0.pk %}">
+                                {{ movie.upcoming_screenings.0.start_at|date:"D j · H:i" }}
+                            </a>
+                        {% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3>No hay películas actualmente en cartelera.</h3>
+            <p>El administrador puede crear películas y sesiones desde el panel.</p>
+        </div>
+    {% endif %}
+</section>
+
+{% if next_screenings %}
+<section class="shell section">
+    <div class="section-heading"><div><p class="eyebrow">Agenda</p><h2>Próximas sesiones</h2></div></div>
+    <div class="session-list">
+        {% for screening in next_screenings %}
+            <a class="session-row" href="{% url 'core:screening_detail' screening.pk %}">
+                <span><strong>{{ screening.movie.title }}</strong><small>{{ screening.room.name }}</small></span>
+                <span class="session-time">{{ screening.start_at|date:"j M · H:i" }}</span>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="shell section ad-section">{% show_ad "home" %}</section>
+{% endblock %}

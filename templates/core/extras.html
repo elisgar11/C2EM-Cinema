@@ -1,0 +1,49 @@
+{% extends "core/base.html" %}
+
+{% block title %}Extras · {{ summary.screening.movie.title }}{% endblock %}
+
+{% block content %}
+<section class="shell section narrow booking-step">
+    <div class="section-heading split-heading">
+        <div><p class="eyebrow">Paso 2 de 3</p><h1>Algo para picar</h1></div>
+        <div class="session-summary"><strong>{{ summary.seats|length }} butaca{{ summary.seats|length|pluralize:"s" }}</strong><span>{{ summary.seat_total }}{{ site_settings.currency_symbol }}</span></div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        {% if packs %}
+            <h2 class="subheading">Packs</h2>
+            <div class="shop-grid">
+                {% for pack in packs %}
+                    <article class="shop-card">
+                        {% if pack.image %}<img src="{{ pack.image.url }}" alt="">{% endif %}
+                        <div class="shop-card-body">
+                            <div><h3>{{ pack.name }}</h3><p>{{ pack.description }}</p></div>
+                            {% if pack.items.all %}<small>{% for item in pack.items.all %}{{ item.quantity }}× {{ item.product.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</small>{% endif %}
+                            <div class="shop-buy"><strong>{{ pack.price }}{{ site_settings.currency_symbol }}</strong><input class="quantity" type="number" name="pack_{{ pack.pk }}" min="0" max="20" value="0" aria-label="Cantidad de {{ pack.name }}"></div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if products %}
+            <h2 class="subheading">Productos</h2>
+            <div class="shop-grid">
+                {% for product in products %}
+                    <article class="shop-card compact-card">
+                        {% if product.image %}<img src="{{ product.image.url }}" alt="">{% endif %}
+                        <div class="shop-card-body">
+                            <div><h3>{{ product.name }}</h3><p>{{ product.description }}</p></div>
+                            <div class="shop-buy"><strong>{{ product.price }}{{ site_settings.currency_symbol }}</strong><input class="quantity" type="number" name="product_{{ product.pk }}" min="0" max="20" value="0" aria-label="Cantidad de {{ product.name }}"></div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if not packs and not products %}<div class="empty-state">No hay extras configurados. Puedes continuar directamente.</div>{% endif %}
+        <div class="sticky-action"><div><strong>{{ summary.screening.movie.title }}</strong><span>{{ summary.screening.start_at|date:"j M · H:i" }}</span></div><button class="button" type="submit">Revisar reserva</button></div>
+    </form>
+</section>
+{% endblock %}

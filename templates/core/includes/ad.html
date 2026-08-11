@@ -1,0 +1,9 @@
+{% if ad %}<aside class="ad-card">
+    {% if ad.media %}<img src="{{ ad.media.url }}" alt="">{% endif %}
+    <div>
+        <p class="ad-label">Publicidad de los amigos</p>
+        <h3>{{ ad.headline }}</h3>
+        {% if ad.body %}<p>{{ ad.body }}</p>{% endif %}
+        {% if ad.target_url %}<a href="{{ ad.target_url }}" target="_blank" rel="noopener">Ver más ↗</a>{% endif %}
+    </div>
+</aside>{% endif %}

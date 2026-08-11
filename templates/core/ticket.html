@@ -1,0 +1,33 @@
+{% extends "core/base.html" %}
+{% load cinema_tags %}
+
+{% block title %}Entrada {{ booking.code }}{% endblock %}
+
+{% block content %}
+<section class="shell section ticket-page">
+    <article class="ticket {% if booking.status == 'cancelled' %}cancelled{% endif %}">
+        <div class="ticket-main">
+            <p class="eyebrow">{{ site_settings.cinema_name }}</p>
+            <h1>{{ booking.screening.movie.title }}</h1>
+            {% if booking.status == 'cancelled' %}<div class="cancelled-banner">RESERVA CANCELADA</div>{% endif %}
+            <div class="ticket-facts">
+                <div><span>Fecha</span><strong>{{ booking.screening.start_at|date:"j M Y" }}</strong></div>
+                <div><span>Hora</span><strong>{{ booking.screening.start_at|date:"H:i" }}</strong></div>
+                <div><span>Sala</span><strong>{{ booking.screening.room.name }}</strong></div>
+                <div><span>Butacas</span><strong>{% for item in booking.seats.all %}{{ item.seat.label }}{% if not forloop.last %} · {% endif %}{% endfor %}</strong></div>
+            </div>
+            <div class="ticket-owner"><span>A nombre de</span><strong>{{ booking.customer_name }}</strong></div>
+            {% if booking.products.all or booking.packs.all %}
+                <div class="ticket-extras"><span>Extras</span><p>{% for item in booking.products.all %}{{ item.quantity }}× {{ item.product.name }}{% if not forloop.last or booking.packs.all %} · {% endif %}{% endfor %}{% for item in booking.packs.all %}{{ item.quantity }}× {{ item.pack.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</p></div>
+            {% endif %}
+        </div>
+        <aside class="ticket-stub">
+            <img src="{% url 'core:ticket_qr' booking.ticket_token %}" alt="Código QR de la entrada">
+            <strong>{{ booking.code }}</strong>
+            <span>{{ booking.total }}{{ site_settings.currency_symbol }}</span>
+        </aside>
+    </article>
+    {% if site_settings.ticket_footer %}<p class="ticket-footer-copy">{{ site_settings.ticket_footer }}</p>{% endif %}
+</section>
+<section class="shell section narrow ad-section">{% show_ad "ticket" %}</section>
+{% endblock %}

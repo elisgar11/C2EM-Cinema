@@ -1,0 +1,35 @@
+{% load static cinema_tags %}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="{{ site_settings.primary_color|default:'#e50914' }}">
+    <title>{% block title %}{{ site_settings.cinema_name|default:"Mi cine" }}{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    {% block head %}{% endblock %}
+</head>
+<body style="--primary: {{ site_settings.primary_color|default:'#e50914' }}">
+    <header class="topbar">
+        <a class="brand" href="{% url 'core:home' %}">
+            {% if site_settings.logo %}<img class="brand-logo" src="{{ site_settings.logo.url }}" alt="">{% endif %}
+            <span>{{ site_settings.cinema_name|default:"Mi cine" }}</span>
+        </a>
+        <a class="admin-link" href="/admin/">Administrar</a>
+    </header>
+
+    {% if messages %}
+        <div class="messages shell compact">
+            {% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}
+        </div>
+    {% endif %}
+
+    <main>{% block content %}{% endblock %}</main>
+
+    <footer class="footer shell compact">
+        <span>{{ site_settings.cinema_name|default:"Mi cine" }}</span>
+        <span>Cine privado autohospedado</span>
+    </footer>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+data/*
+!data/.gitkeep
+media/*
+!media/.gitkeep
+staticfiles/
+.DS_Store
