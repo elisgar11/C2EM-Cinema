@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from .models import CastMember, MovieExternalId
@@ -74,48 +74,53 @@ def sync_movie_metadata(movie, *, replace: bool = False, provider: MovieMetadata
     metadata = provider.fetch(external_id)
     fields_updated = []
 
-    with transaction.atomic():
-        identity, _ = MovieExternalId.objects.update_or_create(
-            movie=movie,
-            provider=provider.name,
-            defaults={
-                "external_id": metadata.external_id,
-                "last_synced_at": timezone.now(),
-            },
-        )
-
-        if metadata.overview and (replace or not movie.description.strip()):
-            movie.description = metadata.overview
-            fields_updated.append("description")
-
-        if metadata.runtime_minutes and (replace or not movie.duration_minutes):
-            movie.duration_minutes = metadata.runtime_minutes
-            fields_updated.append("duration_minutes")
-
-        if metadata.trailer_url and (replace or not movie.trailer_url.strip()):
-            movie.trailer_url = metadata.trailer_url
-            fields_updated.append("trailer_url")
-
-        if fields_updated:
-            movie.save(update_fields=[*fields_updated, "updated_at"])
-
-        has_cast = movie.cast_members.exists()
-        cast_updated = bool(metadata.cast) and (replace or not has_cast)
-        if cast_updated:
-            if replace:
-                movie.cast_members.all().delete()
-            CastMember.objects.bulk_create(
-                [
-                    CastMember(
-                        movie=movie,
-                        name=credit.name,
-                        character=credit.character,
-                        sort_order=credit.order,
-                    )
-                    for credit in metadata.cast
-                ],
-                ignore_conflicts=True,
+    try:
+        with transaction.atomic():
+            identity, _ = MovieExternalId.objects.update_or_create(
+                movie=movie,
+                provider=provider.name,
+                defaults={
+                    "external_id": metadata.external_id,
+                    "last_synced_at": timezone.now(),
+                },
             )
+
+            if metadata.overview and (replace or not movie.description.strip()):
+                movie.description = metadata.overview
+                fields_updated.append("description")
+
+            if metadata.runtime_minutes and (replace or not movie.duration_minutes):
+                movie.duration_minutes = metadata.runtime_minutes
+                fields_updated.append("duration_minutes")
+
+            if metadata.trailer_url and (replace or not movie.trailer_url.strip()):
+                movie.trailer_url = metadata.trailer_url
+                fields_updated.append("trailer_url")
+
+            if fields_updated:
+                movie.save(update_fields=[*fields_updated, "updated_at"])
+
+            has_cast = movie.cast_members.exists()
+            cast_updated = bool(metadata.cast) and (replace or not has_cast)
+            if cast_updated:
+                if replace:
+                    movie.cast_members.all().delete()
+                CastMember.objects.bulk_create(
+                    [
+                        CastMember(
+                            movie=movie,
+                            name=credit.name,
+                            character=credit.character,
+                            sort_order=credit.order,
+                        )
+                        for credit in metadata.cast
+                    ],
+                    ignore_conflicts=True,
+                )
+    except IntegrityError as exc:
+        raise ProviderError(
+            f"El identificador {provider.name}:{metadata.external_id} ya está asociado a otra película."
+        ) from exc
 
     return MetadataSyncResult(
         provider=provider.name,
