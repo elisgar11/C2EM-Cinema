@@ -1,0 +1,33 @@
+.cinema-ad {
+    overflow: hidden;
+}
+
+.cinema-ad-media {
+    width: min(360px, 34vw);
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #090909;
+    border-radius: 4px;
+}
+
+.cinema-ad-media img,
+.cinema-ad-media video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.cinema-ad-copy {
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    .cinema-ad {
+        grid-template-columns: 1fr;
+    }
+
+    .cinema-ad-media {
+        width: 100%;
+    }
+}
