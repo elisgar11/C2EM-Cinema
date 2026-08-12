@@ -11,6 +11,7 @@ from django.utils.html import format_html
 
 from catalog.creation import create_movie_from_provider
 from catalog.providers import ProviderError
+from catalog.runtime_config import tmdb_token_source
 from catalog.services import (
     get_movie_metadata_provider,
     identify_movie_metadata,
@@ -18,6 +19,7 @@ from catalog.services import (
     sync_movie_metadata,
 )
 
+from .forms import SiteSettingsAdminForm
 from .models import (
     Advertisement,
     Booking,
@@ -37,11 +39,42 @@ from .models import (
 
 @admin.register(SiteSettings)
 class SiteSettingsAdmin(admin.ModelAdmin):
+    form = SiteSettingsAdminForm
+    readonly_fields = ("metadata_runtime_status",)
     fieldsets = (
         ("Identidad", {"fields": ("cinema_name", "logo", "tagline", "primary_color")}),
         ("Contenido", {"fields": ("home_message", "ticket_footer")}),
         ("Formato", {"fields": ("currency_symbol",)}),
+        (
+            "Proveedores de metadatos",
+            {
+                "fields": (
+                    "metadata_provider",
+                    "metadata_runtime_status",
+                    "tmdb_api_token_input",
+                    "clear_tmdb_api_token",
+                ),
+                "description": (
+                    "El token guardado aquí se aplica inmediatamente y tiene prioridad sobre TMDB_API_TOKEN del entorno. "
+                    "Sin token TMDB, C2EM usa Wikidata automáticamente como fallback."
+                ),
+            },
+        ),
     )
+
+    @admin.display(description="Estado actual")
+    def metadata_runtime_status(self, obj):
+        try:
+            active_provider = get_movie_metadata_provider().name.upper()
+        except ProviderError:
+            active_provider = "No disponible"
+        source = tmdb_token_source()
+        source_label = {
+            "admin": "token TMDB guardado en el administrador",
+            "environment": "token TMDB cargado desde .env",
+            "none": "sin token TMDB; Wikidata queda disponible como fallback",
+        }.get(source, source)
+        return format_html("<strong>{}</strong><br><span>{}</span>", f"Proveedor activo: {active_provider}", source_label)
 
     def has_add_permission(self, request):
         return not SiteSettings.objects.exists()
@@ -269,7 +302,7 @@ class MovieAdmin(admin.ModelAdmin):
             if not provider.is_configured():
                 self.message_user(
                     request,
-                    "Película guardada, pero el proveedor de metadatos no está configurado. Añade TMDB_API_TOKEN para autocompletar sinopsis y reparto.",
+                    "Película guardada, pero el proveedor de metadatos no está configurado.",
                     messages.WARNING,
                 )
                 return
