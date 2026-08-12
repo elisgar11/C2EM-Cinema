@@ -1,6 +1,10 @@
+from django.conf import settings
 from django.contrib import admin, messages
 from django.urls import reverse
 from django.utils.html import format_html
+
+from catalog.providers import ProviderError
+from catalog.services import get_movie_metadata_provider, sync_movie_metadata
 
 from .models import (
     Advertisement,
@@ -36,10 +40,75 @@ class SiteSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(Movie)
 class MovieAdmin(admin.ModelAdmin):
-    list_display = ("title", "duration_minutes", "age_rating", "enabled")
+    list_display = ("title", "duration_minutes", "age_rating", "metadata_source", "enabled")
     list_filter = ("enabled",)
     search_fields = ("title",)
     prepopulated_fields = {"slug": ("title",)}
+    actions = ("complete_metadata", "refresh_metadata")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("external_ids")
+
+    @admin.display(description="Metadatos")
+    def metadata_source(self, obj):
+        identity = next(iter(obj.external_ids.all()), None)
+        if identity is None:
+            return "—"
+        return f"{identity.provider}:{identity.external_id}"
+
+    def save_model(self, request, obj, form, change):
+        creating = obj.pk is None
+        super().save_model(request, obj, form, change)
+
+        if not creating or not getattr(settings, "MOVIE_METADATA_AUTO_FETCH", True):
+            return
+
+        try:
+            provider = get_movie_metadata_provider()
+            if not provider.is_configured():
+                self.message_user(
+                    request,
+                    "Película guardada, pero el proveedor de metadatos no está configurado. Añade TMDB_API_TOKEN para autocompletar sinopsis y reparto.",
+                    messages.WARNING,
+                )
+                return
+            result = sync_movie_metadata(obj, provider=provider)
+        except ProviderError as exc:
+            self.message_user(request, f"Película guardada, pero no se pudieron recuperar metadatos: {exc}", messages.WARNING)
+            return
+
+        details = []
+        if result.fields_updated:
+            details.append(", ".join(result.fields_updated))
+        if result.cast_updated:
+            details.append("reparto")
+        suffix = f" ({'; '.join(details)})" if details else ""
+        self.message_user(request, f"Metadatos recuperados desde {result.provider}{suffix}.", messages.SUCCESS)
+
+    def _sync_selected(self, request, queryset, *, replace):
+        updated = 0
+        failed = 0
+        for movie in queryset:
+            try:
+                sync_movie_metadata(movie, replace=replace)
+                updated += 1
+            except ProviderError as exc:
+                failed += 1
+                self.message_user(request, f"{movie.title}: {exc}", messages.WARNING)
+
+        if updated:
+            mode = "actualizadas" if replace else "completadas"
+            self.message_user(request, f"{updated} película(s) {mode} desde el proveedor de metadatos.", messages.SUCCESS)
+        if failed:
+            self.message_user(request, f"{failed} película(s) no pudieron sincronizarse.", messages.WARNING)
+
+    @admin.action(description="Completar metadatos vacíos desde el proveedor")
+    def complete_metadata(self, request, queryset):
+        self._sync_selected(request, queryset, replace=False)
+
+    @admin.action(description="Refrescar y reemplazar metadatos desde el proveedor")
+    def refresh_metadata(self, request, queryset):
+        self._sync_selected(request, queryset, replace=True)
 
 
 class SeatInline(admin.TabularInline):
