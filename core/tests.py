@@ -217,6 +217,49 @@ class StaffFlowTests(CinemaFixture):
         self.assertContains(response, "APAGA EL MÓVIL")
         self.assertContains(response, "Alien")
 
+    def test_scanner_requires_staff(self):
+        response = self.client.get(reverse("core:ticket_scanner"))
+
+        self.assertEqual(response.status_code, 302)
+
+    def test_scanner_validates_booking_code(self):
+        booking = create_booking(self.selection(), "Ana")
+        self.login_staff()
+
+        response = self.client.post(reverse("core:ticket_scanner"), {"value": booking.code})
+        booking.refresh_from_db()
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIsNotNone(booking.checked_in_at)
+        self.assertIn(str(booking.ticket_token), response.url)
+
+    def test_scanner_accepts_ticket_url(self):
+        booking = create_booking(self.selection(), "Ana")
+        self.login_staff()
+        ticket_url = f"https://cine.example.test{reverse('core:ticket', kwargs={'token': booking.ticket_token})}"
+
+        self.client.post(reverse("core:ticket_scanner"), {"value": ticket_url})
+        booking.refresh_from_db()
+
+        self.assertIsNotNone(booking.checked_in_at)
+
+    def test_scanner_rejects_unknown_code(self):
+        self.login_staff()
+
+        response = self.client.post(reverse("core:ticket_scanner"), {"value": "CINE-XXXXXX"})
+
+        self.assertRedirects(response, reverse("core:ticket_scanner"))
+
+    def test_scanner_does_not_validate_cancelled_booking(self):
+        booking = create_booking(self.selection(), "Ana")
+        booking.cancel()
+        self.login_staff()
+
+        self.client.post(reverse("core:ticket_scanner"), {"value": booking.code})
+        booking.refresh_from_db()
+
+        self.assertIsNone(booking.checked_in_at)
+
 
 class AdvertisementTests(CinemaFixture):
     def test_expired_ad_is_not_rendered(self):
