@@ -6,6 +6,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
+from django.views.decorators.http import require_GET
 
 from .models import Booking, Screening
 
@@ -33,8 +34,7 @@ def screening_dashboard_list(request):
     return render(request, "core/staff_screenings.html", {"screenings": screenings})
 
 
-@staff_member_required
-def screening_dashboard(request, pk):
+def _screening_dashboard_context(pk):
     screening = get_object_or_404(
         Screening.objects.select_related("movie", "room"),
         pk=pk,
@@ -60,7 +60,7 @@ def screening_dashboard(request, pk):
     total_seats = screening.room.seats.count()
     reserved_seats = screening.booked_seats.filter(active=True).count()
 
-    context = {
+    return {
         "screening": screening,
         "bookings": bookings,
         "booking_count": booking_count,
@@ -73,4 +73,16 @@ def screening_dashboard(request, pk):
         "product_totals": sorted(product_totals.items()),
         "pack_totals": sorted(pack_totals.items()),
     }
-    return render(request, "core/staff_screening_dashboard.html", context)
+
+
+@staff_member_required
+def screening_dashboard(request, pk):
+    return render(request, "core/staff_screening_dashboard.html", _screening_dashboard_context(pk))
+
+
+@require_GET
+@staff_member_required
+def screening_dashboard_live(request, pk):
+    response = render(request, "core/includes/staff_screening_live.html", _screening_dashboard_context(pk))
+    response["Cache-Control"] = "no-store"
+    return response

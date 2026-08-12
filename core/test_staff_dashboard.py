@@ -46,6 +46,11 @@ class StaffDashboardTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
+    def test_live_dashboard_requires_staff(self):
+        response = self.client.get(reverse("core:screening_dashboard_live", kwargs={"pk": self.screening.pk}))
+
+        self.assertEqual(response.status_code, 302)
+
     def test_dashboard_list_shows_reservations_and_checkins(self):
         booking = create_booking(self.selection(), "Ana")
         booking.check_in()
@@ -68,8 +73,23 @@ class StaffDashboardTests(TestCase):
         self.assertContains(response, "Ana")
         self.assertContains(response, "B4")
         self.assertContains(response, "1× Palomitas")
+        self.assertContains(response, reverse("core:screening_dashboard_live", kwargs={"pk": self.screening.pk}))
         self.assertEqual(response.context["gross_total"], Decimal("9.00"))
         self.assertEqual(response.context["occupancy_percent"], 50)
+
+    def test_live_dashboard_reflects_recent_checkin(self):
+        booking = create_booking(self.selection(), "Ana")
+        self.login_staff()
+
+        pending = self.client.get(reverse("core:screening_dashboard_live", kwargs={"pk": self.screening.pk}))
+        self.assertContains(pending, "Pendiente")
+
+        booking.check_in()
+        checked_in = self.client.get(reverse("core:screening_dashboard_live", kwargs={"pk": self.screening.pk}))
+
+        self.assertContains(checked_in, "Dentro")
+        self.assertNotContains(checked_in, "Pendiente")
+        self.assertEqual(checked_in["Cache-Control"], "no-store")
 
     def test_cancelled_booking_is_excluded_from_dashboard(self):
         booking = create_booking(self.selection(), "Ana")
