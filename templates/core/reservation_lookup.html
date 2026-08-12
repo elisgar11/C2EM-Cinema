@@ -1,0 +1,19 @@
+{% extends "core/base.html" %}
+
+{% block title %}Buscar entrada · {{ site_settings.cinema_name }}{% endblock %}
+
+{% block content %}
+<section class="shell section lookup-page">
+    <article class="lookup-card">
+        <p class="eyebrow">Tu entrada</p>
+        <h1>Buscar reserva</h1>
+        <p>Introduce el código que aparece en tu entrada, por ejemplo <strong>CINE-X4K2P7</strong>.</p>
+        <form method="post" class="lookup-form">
+            {% csrf_token %}
+            <label for="booking-code">Código de reserva</label>
+            <input id="booking-code" name="code" value="{{ code }}" placeholder="CINE-XXXXXX" autocomplete="off" required autofocus>
+            <button class="button" type="submit">Ver entrada</button>
+        </form>
+    </article>
+</section>
+{% endblock %}
