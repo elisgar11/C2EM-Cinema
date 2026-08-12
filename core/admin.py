@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
-from django.http import Http404
+from django.http import Http404, HttpResponseNotAllowed
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
@@ -50,36 +50,101 @@ class SiteSettingsAdmin(admin.ModelAdmin):
 @admin.register(Movie)
 class MovieAdmin(admin.ModelAdmin):
     change_form_template = "admin/core/movie/change_form.html"
-    list_display = ("title", "duration_minutes", "age_rating", "metadata_source", "identify_action", "enabled")
+    list_display = (
+        "poster_preview",
+        "title",
+        "duration_minutes",
+        "age_rating",
+        "metadata_source",
+        "metadata_action",
+        "enabled",
+    )
     list_filter = ("enabled",)
     search_fields = ("title",)
     prepopulated_fields = {"slug": ("title",)}
     actions = ("complete_metadata", "refresh_metadata")
+    list_per_page = 25
 
     def get_urls(self):
         custom = [
             path(
+                "<path:object_id>/metadata/auto/",
+                self.admin_site.admin_view(self.auto_metadata_view),
+                name="core_movie_metadata_auto",
+            ),
+            path(
                 "<path:object_id>/identify/",
                 self.admin_site.admin_view(self.identify_view),
                 name="core_movie_identify",
-            )
+            ),
         ]
         return custom + super().get_urls()
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("external_ids")
 
+    @admin.display(description="Póster")
+    def poster_preview(self, obj):
+        if not obj.poster:
+            return format_html('<span class="cine-admin-poster-placeholder">—</span>')
+        return format_html(
+            '<img class="cine-admin-poster" src="{}" alt="">',
+            obj.poster.url,
+        )
+
     @admin.display(description="Metadatos")
     def metadata_source(self, obj):
         identity = next(iter(obj.external_ids.all()), None)
         if identity is None:
-            return "—"
-        return f"{identity.provider}:{identity.external_id}"
+            return format_html('<span class="cine-status cine-status-pending">Sin identificar</span>')
+        return format_html(
+            '<span class="cine-status cine-status-ok">{}:{}</span>',
+            identity.provider,
+            identity.external_id,
+        )
 
-    @admin.display(description="Identificar")
-    def identify_action(self, obj):
+    @admin.display(description="Acción")
+    def metadata_action(self, obj):
         url = reverse("admin:core_movie_identify", args=[obj.pk])
-        return format_html('<a class="button" href="{}">Identificar</a>', url)
+        return format_html('<a class="cine-inline-action" href="{}">Elegir coincidencia</a>', url)
+
+    def _metadata_result_message(self, result):
+        details = []
+        if result.fields_updated:
+            details.append(", ".join(result.fields_updated))
+        if result.cast_updated:
+            details.append("reparto")
+        if getattr(result, "artwork_updated", None):
+            details.append(", ".join(result.artwork_updated))
+        suffix = f" ({'; '.join(details)})" if details else ""
+        return f"Metadatos recuperados desde {result.provider}{suffix}."
+
+    def auto_metadata_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+
+        movie = self.get_object(request, object_id)
+        if movie is None:
+            raise Http404("Película no encontrada")
+        if not self.has_change_permission(request, movie):
+            raise PermissionDenied
+
+        try:
+            provider = get_movie_metadata_provider()
+            if not provider.is_configured():
+                raise ProviderError(f"El proveedor {provider.name} no está configurado.")
+            result = sync_movie_metadata(movie, replace=False, provider=provider)
+        except ProviderError as exc:
+            self.message_user(
+                request,
+                f"No se pudo completar automáticamente: {exc} Revisa las coincidencias disponibles.",
+                messages.WARNING,
+            )
+            identify_url = reverse("admin:core_movie_identify", args=[movie.pk])
+            return redirect(f"{identify_url}?q={movie.title}")
+
+        self.message_user(request, self._metadata_result_message(result), messages.SUCCESS)
+        return redirect(reverse("admin:core_movie_change", args=[movie.pk]))
 
     def identify_view(self, request, object_id):
         movie = self.get_object(request, object_id)
@@ -159,13 +224,7 @@ class MovieAdmin(admin.ModelAdmin):
             self.message_user(request, f"Película guardada, pero no se pudieron recuperar metadatos: {exc}", messages.WARNING)
             return
 
-        details = []
-        if result.fields_updated:
-            details.append(", ".join(result.fields_updated))
-        if result.cast_updated:
-            details.append("reparto")
-        suffix = f" ({'; '.join(details)})" if details else ""
-        self.message_user(request, f"Metadatos recuperados desde {result.provider}{suffix}.", messages.SUCCESS)
+        self.message_user(request, self._metadata_result_message(result), messages.SUCCESS)
 
     def _sync_selected(self, request, queryset, *, replace):
         updated = 0
@@ -352,6 +411,6 @@ class AdvertisementAdmin(admin.ModelAdmin):
     search_fields = ("name", "headline")
 
 
-admin.site.site_header = "Administración del cine"
-admin.site.site_title = "Cine"
-admin.site.index_title = "Gestión"
+admin.site.site_header = "C2EM Cinema · Administración"
+admin.site.site_title = "C2EM Cinema"
+admin.site.index_title = "Centro de control"

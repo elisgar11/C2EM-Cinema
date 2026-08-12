@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | C2EM Cinema{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/admin-cinema.css' %}">
+{% endblock %}
+
+{% block branding %}
+<div class="cine-admin-brand">
+    <a href="{% url 'admin:index' %}" class="cine-admin-brand-link" aria-label="Centro de control C2EM Cinema">
+        <span class="cine-admin-mark">C</span>
+        <span>
+            <strong>C2EM Cinema</strong>
+            <small>Centro de control</small>
+        </span>
+    </a>
+</div>
+{% endblock %}
+
+{% block nav-global %}
+<nav class="cine-admin-global" aria-label="Accesos del cine">
+    <a href="{% url 'core:home' %}" target="_blank" rel="noopener">Abrir cine</a>
+    <a href="{% url 'core:staff_screenings' %}">Sesiones</a>
+    <a href="{% url 'core:ticket_scanner' %}">Escáner</a>
+</nav>
+{% endblock %}

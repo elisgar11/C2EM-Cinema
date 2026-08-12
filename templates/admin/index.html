@@ -1,0 +1,63 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block bodyclass %}{{ block.super }} dashboard cine-admin-dashboard{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <section class="cine-admin-hero">
+        <div>
+            <p class="cine-kicker">Operaciones</p>
+            <h1>Centro de control</h1>
+            <p>Gestiona cartelera, sesiones, reservas y acceso a sala desde un único punto.</p>
+        </div>
+        <a class="button default cine-primary-action" href="{% url 'admin:core_movie_add' %}">Añadir película</a>
+    </section>
+
+    <section class="cine-quick-grid" aria-label="Acciones rápidas">
+        <a class="cine-quick-card" href="{% url 'admin:core_movie_changelist' %}">
+            <span class="cine-quick-index">01</span>
+            <strong>Películas</strong>
+            <span>Cartelera, imágenes y metadatos</span>
+        </a>
+        <a class="cine-quick-card" href="{% url 'admin:core_screening_changelist' %}">
+            <span class="cine-quick-index">02</span>
+            <strong>Sesiones</strong>
+            <span>Horarios, salas y precios</span>
+        </a>
+        <a class="cine-quick-card" href="{% url 'admin:core_booking_changelist' %}">
+            <span class="cine-quick-index">03</span>
+            <strong>Reservas</strong>
+            <span>Entradas, check-in y cancelaciones</span>
+        </a>
+        <a class="cine-quick-card" href="{% url 'core:ticket_scanner' %}">
+            <span class="cine-quick-index">04</span>
+            <strong>Escáner</strong>
+            <span>Validar entradas en puerta</span>
+        </a>
+        <a class="cine-quick-card" href="{% url 'core:staff_screenings' %}">
+            <span class="cine-quick-index">05</span>
+            <strong>Panel de sala</strong>
+            <span>Ocupación y estado en directo</span>
+        </a>
+        <a class="cine-quick-card" href="{% url 'admin:core_advertisement_changelist' %}">
+            <span class="cine-quick-index">06</span>
+            <strong>Anuncios</strong>
+            <span>Spots, ubicaciones y pre-show</span>
+        </a>
+    </section>
+
+    <section class="cine-admin-models">
+        <div class="cine-section-heading">
+            <div>
+                <p class="cine-kicker">Configuración</p>
+                <h2>Todos los módulos</h2>
+            </div>
+        </div>
+        {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+    </section>
+</div>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}
