@@ -97,10 +97,17 @@ MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
 MOVIE_METADATA_PROVIDER = os.environ.get("MOVIE_METADATA_PROVIDER", "tmdb")
 MOVIE_METADATA_AUTO_FETCH = os.environ.get("MOVIE_METADATA_AUTO_FETCH", "true").lower() in {"1", "true", "yes", "on"}
+MOVIE_METADATA_FETCH_IMAGES = os.environ.get("MOVIE_METADATA_FETCH_IMAGES", "true").lower() in {"1", "true", "yes", "on"}
+MOVIE_METADATA_IMAGE_TIMEOUT_SECONDS = os.environ.get("MOVIE_METADATA_IMAGE_TIMEOUT_SECONDS", "8")
+MOVIE_METADATA_IMAGE_MAX_BYTES = int(os.environ.get("MOVIE_METADATA_IMAGE_MAX_BYTES", str(15 * 1024 * 1024)))
 TMDB_API_TOKEN = os.environ.get("TMDB_API_TOKEN", "")
 TMDB_LANGUAGE = os.environ.get("TMDB_LANGUAGE", "es-ES")
 TMDB_FALLBACK_LANGUAGE = os.environ.get("TMDB_FALLBACK_LANGUAGE", "en-US")
 TMDB_TIMEOUT_SECONDS = os.environ.get("TMDB_TIMEOUT_SECONDS", "8")
 TMDB_MAX_CAST_MEMBERS = os.environ.get("TMDB_MAX_CAST_MEMBERS", "12")
+TMDB_IMAGE_BASE_URL = os.environ.get("TMDB_IMAGE_BASE_URL", "https://image.tmdb.org/t/p")
+TMDB_POSTER_PREVIEW_SIZE = os.environ.get("TMDB_POSTER_PREVIEW_SIZE", "w342")
+TMDB_POSTER_SIZE = os.environ.get("TMDB_POSTER_SIZE", "w780")
+TMDB_BACKDROP_SIZE = os.environ.get("TMDB_BACKDROP_SIZE", "w1280")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
