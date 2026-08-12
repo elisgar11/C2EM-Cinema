@@ -58,13 +58,26 @@ El catálogo usa una capa de proveedores desacoplada. TMDB es el proveedor princ
 
 El comportamiento por defecto es:
 
-1. si `TMDB_API_TOKEN` está configurado, usa TMDB;
+1. si hay un token TMDB configurado desde el admin o mediante `TMDB_API_TOKEN`, usa TMDB;
 2. si TMDB no está configurado, usa Wikidata automáticamente;
 3. la identidad externa elegida se guarda junto a la película (`tmdb:<id>` o `wikidata:Q...`);
 4. los refrescos posteriores usan el identificador persistido de ese proveedor;
 5. las ediciones manuales no se pisan salvo que se solicite un reemplazo explícito.
 
 En Django Admin, `Añadir película` abre el asistente de búsqueda. Puedes escribir, por ejemplo, `Dune (2021)`, ver candidatos y elegir la coincidencia correcta antes de crear el registro.
+
+### Configurar el proveedor desde el admin
+
+En `Administración > Configuración del cine > Proveedores de metadatos` puedes:
+
+- elegir `Automático`, `TMDB` o `Wikidata`;
+- ver qué proveedor está activo en ese momento;
+- pegar un `API Read Access Token` de TMDB;
+- eliminar el token guardado desde el admin.
+
+El token guardado desde la interfaz entra en vigor inmediatamente y tiene prioridad sobre `TMDB_API_TOKEN` del entorno. El formulario nunca vuelve a mostrar el valor completo del token después de guardarlo. Si se elimina el token guardado y existe `TMDB_API_TOKEN` en `.env`, se vuelve a utilizar el token del entorno.
+
+El token configurado desde el admin se almacena en la base de datos local del cine; por tanto, también queda incluido en cualquier copia de seguridad de `data/db.sqlite3`. No se guarda en el repositorio.
 
 ### TMDB
 
@@ -81,7 +94,7 @@ Si TMDB no devuelve sinopsis en `es-ES`, el sistema intenta `en-US` como fallbac
 
 ### Wikidata sin API key
 
-Si no existe `TMDB_API_TOKEN`, C2EM pasa automáticamente a Wikidata. El proveedor de Wikidata usa sus endpoints públicos y puede completar, según disponibilidad del elemento:
+Si no existe un token TMDB efectivo, C2EM pasa automáticamente a Wikidata. El proveedor de Wikidata usa sus endpoints públicos y puede completar, según disponibilidad del elemento:
 
 - título;
 - descripción breve de Wikidata;
@@ -113,7 +126,7 @@ MOVIE_METADATA_FALLBACK_PROVIDER=wikidata
 MOVIE_METADATA_AUTO_FETCH=true
 MOVIE_METADATA_FETCH_IMAGES=true
 
-# Opcional. Si queda vacío, se usa Wikidata.
+# Opcional. Si queda vacío y no hay token en el admin, se usa Wikidata.
 TMDB_API_TOKEN=
 TMDB_LANGUAGE=es-ES
 TMDB_FALLBACK_LANGUAGE=en-US
@@ -130,7 +143,7 @@ WIKIDATA_POSTER_PREVIEW_WIDTH=342
 WIKIDATA_POSTER_WIDTH=780
 ```
 
-No se guarda ningún token en la base de datos ni en el repositorio. Si ambos proveedores están desactivados o el proveedor activo no responde, el alta manual de películas continúa disponible.
+Si ambos proveedores están desactivados o el proveedor activo no responde, el alta manual de películas continúa disponible.
 
 La identidad externa se mantiene separada del modelo de película para poder incorporar proveedores adicionales más adelante sin cambiar la lógica pública del cine.
 
