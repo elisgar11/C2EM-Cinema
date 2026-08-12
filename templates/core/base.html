@@ -51,6 +51,8 @@
                 <span>Cine privado · hecho para compartir una buena película</span>
                 {% if movie_metadata_provider == "tmdb" %}
                     <small>This product uses the TMDB API but is not endorsed or certified by TMDB.</small>
+                {% elif movie_metadata_provider == "wikidata" %}
+                    <small>Metadatos de películas obtenidos de Wikidata; algunas imágenes pueden proceder de Wikimedia Commons.</small>
                 {% endif %}
             </div>
             <a href="{% url 'core:reservation_lookup' %}">Buscar entrada</a>
