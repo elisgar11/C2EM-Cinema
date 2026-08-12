@@ -4,21 +4,33 @@
 {% block title %}{{ movie.title }} · {{ site_settings.cinema_name }}{% endblock %}
 
 {% block content %}
-<section class="movie-hero shell">
-    <div class="detail-poster poster">
-        {% if movie.poster %}<img src="{{ movie.poster.url }}" alt="Póster de {{ movie.title }}">{% else %}<span class="poster-placeholder">{{ movie.title|slice:":1" }}</span>{% endif %}
-    </div>
-    <div class="movie-copy">
-        <p class="eyebrow">En cartelera</p>
-        <h1>{{ movie.title }}</h1>
-        <p class="meta">{{ movie.duration_minutes }} min{% if movie.age_rating %} · {{ movie.age_rating }}{% endif %}</p>
-        {% if movie.description %}<p class="lead">{{ movie.description }}</p>{% endif %}
-        {% if movie.trailer_url %}<a class="text-link" href="{{ movie.trailer_url }}" target="_blank" rel="noopener">Ver tráiler ↗</a>{% endif %}
+<section class="cinema-movie-feature{% if movie.backdrop %} has-backdrop{% endif %}"{% if movie.backdrop %} style="--movie-backdrop: url('{{ movie.backdrop.url }}')"{% endif %}>
+    <div class="cinema-feature-inner">
+        <div class="cinema-feature-poster">
+            {% if movie.poster %}<img src="{{ movie.poster.url }}" alt="Póster de {{ movie.title }}">{% else %}<span class="poster-placeholder">{{ movie.title|slice:":1" }}</span>{% endif %}
+        </div>
+        <div class="cinema-feature-copy">
+            <p class="cinema-kicker">En cartelera</p>
+            <h1>{{ movie.title }}</h1>
+            <p class="cinema-feature-meta">
+                <span>{{ movie.duration_minutes }} min</span>
+                {% if movie.age_rating %}<span class="cinema-meta-dot">•</span><span>{{ movie.age_rating }}</span>{% endif %}
+                {% if screening_days %}<span class="cinema-meta-dot">•</span><span>Sesiones disponibles</span>{% endif %}
+            </p>
+            {% if movie.description %}<p class="cinema-feature-description">{{ movie.description }}</p>{% endif %}
+            <div class="cinema-feature-actions">
+                {% if screening_days %}<a class="cinema-cta" href="#sesiones">Elegir sesión</a>{% endif %}
+                {% if movie.trailer_url %}<a class="cinema-cta secondary" href="{{ movie.trailer_url }}" target="_blank" rel="noopener">Ver tráiler ↗</a>{% endif %}
+            </div>
+        </div>
     </div>
 </section>
 
-<section class="shell section narrow">
-    <div class="section-heading"><div><p class="eyebrow">Horarios</p><h2>Elige una sesión</h2></div></div>
+<section class="shell section narrow" id="sesiones">
+    <div class="section-heading">
+        <div><p class="eyebrow">Horarios</p><h2>Elige tu sesión</h2></div>
+        <span class="cinema-section-note">Después eliges butacas y extras</span>
+    </div>
     {% if screening_days %}
         <div class="screening-days">
             {% for day, screenings in screening_days %}
