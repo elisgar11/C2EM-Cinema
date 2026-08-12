@@ -95,4 +95,12 @@ STORAGES = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
+MOVIE_METADATA_PROVIDER = os.environ.get("MOVIE_METADATA_PROVIDER", "tmdb")
+MOVIE_METADATA_AUTO_FETCH = os.environ.get("MOVIE_METADATA_AUTO_FETCH", "true").lower() in {"1", "true", "yes", "on"}
+TMDB_API_TOKEN = os.environ.get("TMDB_API_TOKEN", "")
+TMDB_LANGUAGE = os.environ.get("TMDB_LANGUAGE", "es-ES")
+TMDB_FALLBACK_LANGUAGE = os.environ.get("TMDB_FALLBACK_LANGUAGE", "en-US")
+TMDB_TIMEOUT_SECONDS = os.environ.get("TMDB_TIMEOUT_SECONDS", "8")
+TMDB_MAX_CAST_MEMBERS = os.environ.get("TMDB_MAX_CAST_MEMBERS", "12")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
