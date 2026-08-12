@@ -47,6 +47,12 @@ class TmdbMovieMetadataProvider:
         except (json.JSONDecodeError, ValueError) as exc:
             raise ProviderError("TMDB devolvió una respuesta no válida.") from exc
 
+    def _poster_url(self, poster_path: str | None) -> str:
+        if not poster_path:
+            return ""
+        base = getattr(settings, "TMDB_POSTER_BASE_URL", "https://image.tmdb.org/t/p/w342").rstrip("/")
+        return f"{base}/{poster_path.lstrip('/')}"
+
     def search(self, title: str, year: int | None = None) -> list[MovieSearchResult]:
         language = getattr(settings, "TMDB_LANGUAGE", "es-ES")
         data = self._get(
@@ -73,6 +79,7 @@ class TmdbMovieMetadataProvider:
                     title=(item.get("title") or item.get("original_title") or title).strip(),
                     release_year=release_year,
                     overview=(item.get("overview") or "").strip(),
+                    poster_url=self._poster_url(item.get("poster_path")),
                 )
             )
         return results
