@@ -1,3 +1,6 @@
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -102,3 +105,20 @@ class MetadataProviderSettingsAdminSecurityTests(TestCase):
         self.assertContains(response, "token TMDB guardado en el administrador")
         self.assertNotContains(response, "super-secret-read-token")
         self.assertContains(response, 'type="password"')
+
+    @override_settings(TMDB_API_TOKEN="token", MOVIE_METADATA_PROVIDER="tmdb")
+    @patch("core.admin.get_movie_metadata_provider")
+    def test_add_movie_assistant_uses_provider_selected_in_cinema_settings(self, get_provider):
+        self.site.metadata_provider = "wikidata"
+        self.site.save()
+        get_provider.return_value = SimpleNamespace(
+            name="wikidata",
+            is_configured=lambda: True,
+            search=lambda title, year=None: [],
+        )
+
+        response = self.client.get(reverse("admin:core_movie_add"))
+
+        self.assertEqual(response.status_code, 200)
+        get_provider.assert_called_once_with("wikidata")
+        self.assertContains(response, "WIKIDATA")
