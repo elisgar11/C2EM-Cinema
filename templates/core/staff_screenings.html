@@ -1,0 +1,36 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Sesiones · Operación{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<section class="shell section staff-dashboard">
+    <div class="dashboard-heading">
+        <div>
+            <p class="eyebrow">Operación</p>
+            <h1>Sesiones</h1>
+            <p class="lead">Sesiones recientes y próximas, con reservas y entradas ya validadas.</p>
+        </div>
+        <a class="button secondary" href="{% url 'core:ticket_scanner' %}">Escanear entradas</a>
+    </div>
+
+    <div class="session-dashboard-list">
+        {% for screening in screenings %}
+            <a class="session-dashboard-card" href="{% url 'core:screening_dashboard' screening.pk %}">
+                <div>
+                    <span class="session-dashboard-date">{{ screening.start_at|date:"D j M · H:i" }}</span>
+                    <h2>{{ screening.movie.title }}</h2>
+                    <p>{{ screening.room.name }}</p>
+                </div>
+                <div class="session-dashboard-stats">
+                    <span><strong>{{ screening.confirmed_count }}</strong> reservas</span>
+                    <span><strong>{{ screening.checked_in_count }}</strong> dentro</span>
+                </div>
+            </a>
+        {% empty %}
+            <div class="dashboard-empty">No hay sesiones recientes ni próximas.</div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
