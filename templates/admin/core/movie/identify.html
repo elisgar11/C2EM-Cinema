@@ -5,7 +5,7 @@
 {% block extrastyle %}
 {{ block.super }}
 <style>
-.identify-shell{max-width:1120px}.identify-head{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin-bottom:24px}.identify-current{padding:10px 14px;border:1px solid var(--hairline-color);border-radius:6px}.identify-search{display:flex;gap:10px;margin:18px 0 26px}.identify-search input[type=text]{min-width:320px;max-width:640px;flex:1}.identify-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}.identify-card{display:grid;grid-template-columns:96px 1fr;gap:16px;padding:16px;border:1px solid var(--hairline-color);border-radius:8px;background:var(--darkened-bg)}.identify-poster{width:96px;aspect-ratio:2/3;object-fit:cover;border-radius:5px;background:var(--hairline-color)}.identify-placeholder{display:grid;place-items:center;color:var(--body-quiet-color);font-size:12px;text-align:center}.identify-card h2{margin:0 0 4px;font-size:18px}.identify-meta{color:var(--body-quiet-color);margin-bottom:10px}.identify-overview{line-height:1.45;min-height:62px}.identify-actions{margin-top:14px}.identify-actions label{display:block;margin:9px 0}.identify-error{padding:14px 16px;border-left:4px solid #ba2121;background:var(--darkened-bg)}@media(max-width:700px){.identify-head{display:block}.identify-search{display:block}.identify-search input[type=text]{min-width:0;width:100%;box-sizing:border-box;margin-bottom:10px}.identify-card{grid-template-columns:72px 1fr}.identify-poster{width:72px}}
+.identify-shell{max-width:1120px}.identify-head{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin-bottom:24px}.identify-current{padding:10px 14px;border:1px solid var(--hairline-color);border-radius:6px}.identify-search{display:flex;gap:10px;margin:18px 0 26px}.identify-search input[type=text]{min-width:320px;max-width:640px;flex:1}.identify-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}.identify-card{display:grid;grid-template-columns:96px 1fr;gap:16px;padding:16px;border:1px solid var(--hairline-color);border-radius:8px;background:var(--darkened-bg)}.identify-poster{width:96px;aspect-ratio:2/3;object-fit:cover;border-radius:5px;background:var(--hairline-color)}.identify-placeholder{display:grid;place-items:center;color:var(--body-quiet-color);font-size:12px;text-align:center}.identify-card h2{margin:0 0 4px;font-size:18px}.identify-meta{color:var(--body-quiet-color);margin-bottom:10px}.identify-overview{line-height:1.45;min-height:62px}.identify-actions{margin-top:14px}.identify-actions label{display:block;margin:9px 0}.identify-note{margin:10px 0;color:var(--body-quiet-color)}.identify-error{padding:14px 16px;border-left:4px solid #ba2121;background:var(--darkened-bg)}@media(max-width:700px){.identify-head{display:block}.identify-search{display:block}.identify-search input[type=text]{min-width:0;width:100%;box-sizing:border-box;margin-bottom:10px}.identify-card{grid-template-columns:72px 1fr}.identify-poster{width:72px}}
 </style>
 {% endblock %}
 
@@ -25,6 +25,7 @@
         <div>
             <h1>{{ title }}</h1>
             <p>Busca la película y selecciona el resultado correcto. A partir de entonces los refrescos usarán su ID externo, no volverán a identificarla por el título.</p>
+            <p class="identify-note">Al confirmar se descargarán localmente el póster y el fondo si la película todavía no los tiene.</p>
         </div>
         <div class="identify-current">
             <strong>Identidad actual</strong><br>
@@ -62,7 +63,7 @@
                             <input type="hidden" name="provider" value="{{ candidate.provider }}">
                             <input type="hidden" name="external_id" value="{{ candidate.external_id }}">
                             <input type="hidden" name="q" value="{{ query }}">
-                            <label><input type="checkbox" name="replace" value="1"> Reemplazar también sinopsis, duración, tráiler y reparto editados manualmente</label>
+                            <label><input type="checkbox" name="replace" value="1"> Reemplazar también sinopsis, duración, tráiler, reparto, póster y fondo editados manualmente</label>
                             <button type="submit" class="button default">Usar esta película</button>
                         </form>
                     </div>
