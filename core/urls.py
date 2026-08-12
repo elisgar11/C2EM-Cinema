@@ -17,4 +17,5 @@ urlpatterns = [
     path("ticket/<uuid:token>/", views.ticket, name="ticket"),
     path("ticket/<uuid:token>/check-in/", views.ticket_check_in, name="ticket_check_in"),
     path("ticket/<uuid:token>/qr.svg", views.ticket_qr, name="ticket_qr"),
+    path("staff/scanner/", views.ticket_scanner, name="ticket_scanner"),
 ]
