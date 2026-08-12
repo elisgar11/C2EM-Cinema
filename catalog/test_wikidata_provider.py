@@ -68,7 +68,8 @@ class WikidataProviderTests(TestCase):
                 "claims": {
                     "P31": [entity_claim(entity_value("Q11424"))],
                     "P577": [entity_claim({"time": "+2021-09-03T00:00:00Z"})],
-                    "P18": [entity_claim("Dune (2021 film).jpg")],
+                    "P3383": [entity_claim("Dune 2021 film poster.jpg")],
+                    "P18": [entity_claim("Dune 2021 film still.jpg")],
                 },
             },
             "Q200": {
@@ -93,7 +94,8 @@ class WikidataProviderTests(TestCase):
         self.assertEqual(results[0].external_id, "Q100")
         self.assertEqual(results[0].release_year, 2021)
         self.assertEqual(results[0].overview, "película de ciencia ficción de 2021")
-        self.assertIn("title=Special:Redirect/file/", results[0].poster_url)
+        self.assertIn("Dune%202021%20film%20poster.jpg", results[0].poster_url)
+        self.assertNotIn("still", results[0].poster_url)
         self.assertIn("width=342", results[0].poster_url)
 
     def test_fetch_maps_description_runtime_cast_roles_and_commons_poster(self):
@@ -109,7 +111,8 @@ class WikidataProviderTests(TestCase):
                         }
                     )
                 ],
-                "P18": [entity_claim("Arrival, Movie Poster.jpg")],
+                "P3383": [entity_claim("Arrival Movie Poster.jpg")],
+                "P18": [entity_claim("Arrival Film Still.jpg")],
                 "P161": [
                     entity_claim(
                         entity_value("Q10"),
@@ -150,6 +153,7 @@ class WikidataProviderTests(TestCase):
         self.assertEqual(metadata.runtime_minutes, 116)
         self.assertEqual([credit.name for credit in metadata.cast], ["Amy Adams", "Jeremy Renner"])
         self.assertEqual([credit.character for credit in metadata.cast], ["Louise Banks", "Ian Donnelly"])
-        self.assertIn("Arrival%2C%20Movie%20Poster.jpg", metadata.poster_url)
+        self.assertIn("Arrival%20Movie%20Poster.jpg", metadata.poster_url)
+        self.assertNotIn("Still", metadata.poster_url)
         self.assertIn("width=780", metadata.poster_url)
         self.assertEqual(metadata.backdrop_url, "")
