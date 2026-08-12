@@ -31,6 +31,8 @@ class MovieMetadata:
     overview: str = ""
     runtime_minutes: int | None = None
     trailer_url: str = ""
+    poster_url: str = ""
+    backdrop_url: str = ""
     cast: tuple[CastCredit, ...] = field(default_factory=tuple)
 
 
