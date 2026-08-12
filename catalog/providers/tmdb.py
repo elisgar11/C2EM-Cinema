@@ -47,11 +47,15 @@ class TmdbMovieMetadataProvider:
         except (json.JSONDecodeError, ValueError) as exc:
             raise ProviderError("TMDB devolvió una respuesta no válida.") from exc
 
-    def _poster_url(self, poster_path: str | None) -> str:
-        if not poster_path:
+    def _image_url(self, file_path: str | None, size: str) -> str:
+        if not file_path:
             return ""
-        base = getattr(settings, "TMDB_POSTER_BASE_URL", "https://image.tmdb.org/t/p/w342").rstrip("/")
-        return f"{base}/{poster_path.lstrip('/')}"
+        base = getattr(settings, "TMDB_IMAGE_BASE_URL", "https://image.tmdb.org/t/p").rstrip("/")
+        return f"{base}/{size}/{file_path.lstrip('/')}"
+
+    def _poster_url(self, poster_path: str | None) -> str:
+        size = getattr(settings, "TMDB_POSTER_PREVIEW_SIZE", "w342")
+        return self._image_url(poster_path, size)
 
     def search(self, title: str, year: int | None = None) -> list[MovieSearchResult]:
         language = getattr(settings, "TMDB_LANGUAGE", "es-ES")
@@ -105,24 +109,14 @@ class TmdbMovieMetadataProvider:
             name = (item.get("name") or "").strip()
             if not name:
                 continue
-            cast.append(
-                CastCredit(
-                    name=name,
-                    character=(item.get("character") or "").strip(),
-                    order=int(item.get("order") or 0),
-                )
-            )
+            cast.append(CastCredit(name=name, character=(item.get("character") or "").strip(), order=int(item.get("order") or 0)))
             if len(cast) >= max_cast:
                 break
 
         trailer_url = ""
-        videos = data.get("videos", {}).get("results", [])
         candidates = sorted(
-            videos,
-            key=lambda video: (
-                str(video.get("type", "")).lower() != "trailer",
-                not bool(video.get("official")),
-            ),
+            data.get("videos", {}).get("results", []),
+            key=lambda video: (str(video.get("type", "")).lower() != "trailer", not bool(video.get("official"))),
         )
         for video in candidates:
             if str(video.get("site", "")).lower() == "youtube" and video.get("key"):
@@ -139,5 +133,7 @@ class TmdbMovieMetadataProvider:
             overview=overview,
             runtime_minutes=runtime_minutes,
             trailer_url=trailer_url,
+            poster_url=self._image_url(data.get("poster_path"), getattr(settings, "TMDB_POSTER_SIZE", "w780")),
+            backdrop_url=self._image_url(data.get("backdrop_path"), getattr(settings, "TMDB_BACKDROP_SIZE", "w1280")),
             cast=tuple(cast),
         )
