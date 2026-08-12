@@ -1,0 +1,81 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Añadir película | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+.movie-create-shell{max-width:1180px}.movie-create-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:start;margin-bottom:26px}.movie-create-hero h1{margin-bottom:8px}.movie-create-note{max-width:760px;color:var(--body-quiet-color);font-size:14px;line-height:1.55}.movie-create-manual{white-space:nowrap}.movie-create-search{display:flex;gap:10px;margin:22px 0 28px;padding:18px;border:1px solid var(--hairline-color);background:var(--darkened-bg);border-radius:8px}.movie-create-search input[type=text]{min-width:300px;flex:1;font-size:16px;padding:10px 12px}.movie-create-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px}.movie-create-card{display:grid;grid-template-columns:108px minmax(0,1fr);gap:16px;padding:16px;border:1px solid var(--hairline-color);background:var(--darkened-bg);border-radius:8px}.movie-create-poster{width:108px;aspect-ratio:2/3;object-fit:cover;border-radius:5px;background:var(--hairline-color)}.movie-create-placeholder{display:grid;place-items:center;text-align:center;color:var(--body-quiet-color);font-size:12px}.movie-create-card h2{font-size:18px;margin:0 0 5px}.movie-create-meta{color:var(--body-quiet-color);margin-bottom:10px}.movie-create-overview{line-height:1.45;min-height:64px}.movie-create-actions{margin-top:14px}.movie-create-error{padding:14px 16px;border-left:4px solid #ba2121;background:var(--darkened-bg);margin-bottom:18px}.movie-create-empty{padding:20px;border:1px dashed var(--hairline-color);border-radius:8px;color:var(--body-quiet-color)}.movie-create-step{display:inline-flex;align-items:center;gap:8px;margin-bottom:8px;color:var(--body-quiet-color);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.movie-create-step strong{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff}.movie-create-provider{padding:10px 14px;border:1px solid var(--hairline-color);border-radius:6px}.movie-create-provider span{display:block;color:var(--body-quiet-color);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}@media(max-width:760px){.movie-create-hero{grid-template-columns:1fr}.movie-create-manual{white-space:normal}.movie-create-search{display:block}.movie-create-search input[type=text]{min-width:0;width:100%;box-sizing:border-box;margin-bottom:10px}.movie-create-card{grid-template-columns:82px 1fr}.movie-create-poster{width:82px}}
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Inicio</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label='core' %}">Cine</a>
+    &rsaquo; <a href="{% url 'admin:core_movie_changelist' %}">Películas</a>
+    &rsaquo; Añadir
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="movie-create-shell">
+    <div class="movie-create-hero">
+        <div>
+            <div class="movie-create-step"><strong>1</strong> Buscar e identificar</div>
+            <h1>Añadir película</h1>
+            <p class="movie-create-note">
+                Escribe el título y elige la coincidencia correcta. C2EM creará la película con su identidad externa y cargará automáticamente sinopsis, reparto, duración, tráiler, carátula y fondo disponibles.
+                Para títulos repetidos, añade el año: <strong>Dune (2021)</strong>.
+            </p>
+        </div>
+        <div>
+            <div class="movie-create-provider"><span>Proveedor</span><strong>{{ provider_name|upper }}</strong></div>
+            <p class="movie-create-manual"><a href="{{ manual_add_url }}">Alta manual sin proveedor</a></p>
+        </div>
+    </div>
+
+    {% if provider_error %}<div class="movie-create-error">{{ provider_error }} Puedes continuar con el alta manual.</div>{% endif %}
+
+    <form method="get" class="movie-create-search">
+        <input type="text" name="q" value="{{ query }}" aria-label="Título de película" placeholder="Ej. Blade Runner 2049 (2017)" autofocus>
+        <input type="hidden" name="provider" value="{{ provider_name }}">
+        <button type="submit" class="button default">Buscar en {{ provider_name|upper }}</button>
+    </form>
+
+    {% if candidates %}
+        <div class="movie-create-step"><strong>2</strong> Elegir resultado</div>
+        <div class="movie-create-grid">
+            {% for candidate in candidates %}
+                <article class="movie-create-card">
+                    <div>
+                        {% if candidate.poster_url %}
+                            <img class="movie-create-poster" src="{{ candidate.poster_url }}" alt="Póster de {{ candidate.title }}" loading="lazy">
+                        {% else %}
+                            <div class="movie-create-poster movie-create-placeholder">Sin póster</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h2>{{ candidate.title }}</h2>
+                        <div class="movie-create-meta">
+                            {% if candidate.release_year %}{{ candidate.release_year }} · {% endif %}{{ candidate.provider }}:{{ candidate.external_id }}
+                        </div>
+                        <p class="movie-create-overview">{{ candidate.overview|default:"Sin sinopsis disponible para este resultado."|truncatechars:260 }}</p>
+                        <form method="post" class="movie-create-actions">
+                            {% csrf_token %}
+                            <input type="hidden" name="provider" value="{{ candidate.provider }}">
+                            <input type="hidden" name="external_id" value="{{ candidate.external_id }}">
+                            <input type="hidden" name="q" value="{{ query }}">
+                            <button type="submit" class="button default">Crear esta película</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% elif query and not provider_error %}
+        <div class="movie-create-empty">No se encontraron coincidencias. Prueba con el título original o añade el año de estreno.</div>
+    {% elif not query and not provider_error %}
+        <div class="movie-create-empty">Empieza escribiendo el nombre de la película. No se creará ningún registro hasta que elijas una coincidencia.</div>
+    {% endif %}
+</div>
+{% endblock %}

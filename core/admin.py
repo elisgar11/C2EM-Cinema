@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
@@ -7,6 +9,7 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.html import format_html
 
+from catalog.creation import create_movie_from_provider
 from catalog.providers import ProviderError
 from catalog.services import (
     get_movie_metadata_provider,
@@ -80,6 +83,57 @@ class MovieAdmin(admin.ModelAdmin):
         ]
         return custom + super().get_urls()
 
+    def add_view(self, request, form_url="", extra_context=None):
+        if request.GET.get("manual") == "1":
+            return super().add_view(request, form_url=form_url, extra_context=extra_context)
+        if not self.has_add_permission(request):
+            raise PermissionDenied
+
+        provider_name = request.POST.get("provider") or request.GET.get("provider") or getattr(
+            settings, "MOVIE_METADATA_PROVIDER", "tmdb"
+        )
+        query = (request.GET.get("q") or request.POST.get("q") or "").strip()
+        candidates = []
+        provider_error = ""
+        provider = None
+
+        try:
+            provider = get_movie_metadata_provider(provider_name)
+            if not provider.is_configured():
+                raise ProviderError(f"El proveedor {provider.name} no está configurado.")
+
+            if request.method == "POST" and request.POST.get("external_id"):
+                movie, result = create_movie_from_provider(
+                    request.POST["external_id"],
+                    provider=provider,
+                )
+                self.message_user(
+                    request,
+                    f"«{movie.title}» creada e identificada como {result.provider}:{result.external_id}. "
+                    "Ya puedes revisar los datos o programar una sesión.",
+                    messages.SUCCESS,
+                )
+                return redirect(reverse("admin:core_movie_change", args=[movie.pk]))
+
+            if query:
+                search_title, year = split_title_year(query)
+                candidates = provider.search(search_title, year=year)
+        except ProviderError as exc:
+            provider_error = str(exc)
+
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "title": "Añadir película",
+            "query": query,
+            "candidates": candidates,
+            "provider_name": provider.name if provider else provider_name,
+            "provider_error": provider_error,
+            "manual_add_url": f"{reverse('admin:core_movie_add')}?manual=1",
+            "media": self.media,
+        }
+        return TemplateResponse(request, "admin/core/movie/add_from_metadata.html", context)
+
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("external_ids")
 
@@ -141,7 +195,7 @@ class MovieAdmin(admin.ModelAdmin):
                 messages.WARNING,
             )
             identify_url = reverse("admin:core_movie_identify", args=[movie.pk])
-            return redirect(f"{identify_url}?q={movie.title}")
+            return redirect(f"{identify_url}?{urlencode({'q': movie.title})}")
 
         self.message_user(request, self._metadata_result_message(result), messages.SUCCESS)
         return redirect(reverse("admin:core_movie_change", args=[movie.pk]))
