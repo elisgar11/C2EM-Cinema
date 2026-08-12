@@ -1,0 +1,8 @@
+{% extends "admin/change_form.html" %}
+
+{% block object-tools-items %}
+    {% if original %}
+        <li><a href="{% url 'admin:core_movie_identify' original.pk %}">Identificar película</a></li>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}
