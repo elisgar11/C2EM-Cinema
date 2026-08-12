@@ -9,7 +9,11 @@
         <div class="ticket-main">
             <p class="eyebrow">{{ site_settings.cinema_name }}</p>
             <h1>{{ booking.screening.movie.title }}</h1>
-            {% if booking.status == 'cancelled' %}<div class="cancelled-banner">RESERVA CANCELADA</div>{% endif %}
+            {% if booking.status == 'cancelled' %}
+                <div class="cancelled-banner">RESERVA CANCELADA</div>
+            {% elif booking.checked_in_at %}
+                <div class="checked-in-banner">ENTRADA VALIDADA</div>
+            {% endif %}
             <div class="ticket-facts">
                 <div><span>Fecha</span><strong>{{ booking.screening.start_at|date:"j M Y" }}</strong></div>
                 <div><span>Hora</span><strong>{{ booking.screening.start_at|date:"H:i" }}</strong></div>
@@ -27,6 +31,23 @@
             <span>{{ booking.total }}{{ site_settings.currency_symbol }}</span>
         </aside>
     </article>
+
+    {% if request.user.is_staff %}
+        <aside class="ticket-staff">
+            {% if booking.status == 'cancelled' %}
+                <p>Esta reserva está cancelada y no puede validarse.</p>
+            {% elif booking.checked_in_at %}
+                <p>Entrada validada el {{ booking.checked_in_at|date:"j M Y · H:i" }}.</p>
+            {% else %}
+                <p>Modo staff: comprueba nombre, sesión y butacas antes de validar.</p>
+                <form method="post" action="{% url 'core:ticket_check_in' booking.ticket_token %}">
+                    {% csrf_token %}
+                    <button class="button" type="submit">Registrar entrada</button>
+                </form>
+            {% endif %}
+        </aside>
+    {% endif %}
+
     {% if site_settings.ticket_footer %}<p class="ticket-footer-copy">{{ site_settings.ticket_footer }}</p>{% endif %}
 </section>
 <section class="shell section narrow ad-section">{% show_ad "ticket" %}</section>
