@@ -1,6 +1,7 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
@@ -30,6 +31,11 @@ class CinemaFixture(TestCase):
             "products": products or {},
             "packs": {},
         }
+
+    def login_staff(self):
+        user = get_user_model().objects.create_user(username="staff", password="test", is_staff=True)
+        self.client.force_login(user)
+        return user
 
 
 class SiteSettingsTests(TestCase):
@@ -91,6 +97,23 @@ class BookingTests(CinemaFixture):
 
         self.assertEqual(booking.products.get().unit_price, Decimal("4.00"))
 
+    def test_check_in_is_idempotent(self):
+        booking = create_booking(self.selection(), "Ana")
+
+        self.assertTrue(booking.check_in())
+        first_check_in = booking.checked_in_at
+        self.assertFalse(booking.check_in())
+        booking.refresh_from_db()
+
+        self.assertEqual(booking.checked_in_at, first_check_in)
+
+    def test_cancelled_booking_cannot_check_in(self):
+        booking = create_booking(self.selection(), "Ana")
+        booking.cancel()
+
+        self.assertFalse(booking.check_in())
+        self.assertIsNone(booking.checked_in_at)
+
 
 class PublicFlowTests(CinemaFixture):
     def test_home_lists_bookable_movie(self):
@@ -139,6 +162,60 @@ class PublicFlowTests(CinemaFixture):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "image/svg+xml")
+
+    def test_reservation_lookup_redirects_to_ticket(self):
+        booking = create_booking(self.selection(), "Ana")
+
+        response = self.client.post(reverse("core:reservation_lookup"), {"code": booking.code.lower()})
+
+        self.assertRedirects(response, reverse("core:ticket", kwargs={"token": booking.ticket_token}))
+
+    def test_unknown_reservation_code_stays_on_lookup(self):
+        response = self.client.post(reverse("core:reservation_lookup"), {"code": "CINE-XXXXXX"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No hemos encontrado")
+
+
+class StaffFlowTests(CinemaFixture):
+    def test_check_in_requires_staff(self):
+        booking = create_booking(self.selection(), "Ana")
+
+        response = self.client.post(reverse("core:ticket_check_in", kwargs={"token": booking.ticket_token}))
+        booking.refresh_from_db()
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIsNone(booking.checked_in_at)
+
+    def test_staff_can_check_in_ticket(self):
+        booking = create_booking(self.selection(), "Ana")
+        self.login_staff()
+
+        response = self.client.post(reverse("core:ticket_check_in", kwargs={"token": booking.ticket_token}))
+        booking.refresh_from_db()
+
+        self.assertRedirects(response, reverse("core:ticket", kwargs={"token": booking.ticket_token}))
+        self.assertIsNotNone(booking.checked_in_at)
+
+    def test_preshow_requires_staff(self):
+        response = self.client.get(reverse("core:preshow", kwargs={"pk": self.screening.pk}))
+
+        self.assertEqual(response.status_code, 302)
+
+    def test_preshow_lists_active_preshow_ads(self):
+        Advertisement.objects.create(
+            name="Pre-show",
+            headline="APAGA EL MÓVIL",
+            placement=Advertisement.PRESHOW,
+            start_at=timezone.now() - timedelta(minutes=1),
+        )
+        self.login_staff()
+
+        response = self.client.get(reverse("core:preshow", kwargs={"pk": self.screening.pk}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "APAGA EL MÓVIL")
+        self.assertContains(response, "Alien")
 
 
 class AdvertisementTests(CinemaFixture):
