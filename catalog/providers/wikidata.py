@@ -12,6 +12,7 @@ from .base import CastCredit, MovieMetadata, MovieSearchResult, ProviderError
 
 _QID_RE = re.compile(r"^Q\d+$")
 _FILM_TYPE_TERMS = ("film", "movie", "película", "pelicula", "cinematographic")
+_NON_FILM_TYPE_TERMS = ("film series", "movie series", "film franchise", "soundtrack", "album", "serie de películas")
 _UNIT_MINUTES = {
     "Q11574": Decimal("0.0166666667"),  # second
     "Q7727": Decimal("1"),  # minute
@@ -149,7 +150,7 @@ class WikidataMovieMetadataProvider:
         return f"{self.commons_base}?title=Special:Redirect/file/{quote(filename)}&width={int(width)}"
 
     def _poster_url(self, entity: dict, *, preview: bool) -> str:
-        filenames = self._claim_values(entity, "P18")
+        filenames = self._claim_values(entity, "P3383") or self._claim_values(entity, "P18")
         if not filenames:
             return ""
         width_setting = "WIKIDATA_POSTER_PREVIEW_WIDTH" if preview else "WIKIDATA_POSTER_WIDTH"
@@ -180,6 +181,8 @@ class WikidataMovieMetadataProvider:
                     ],
                 )
             ).casefold()
+            if any(term in text for term in _NON_FILM_TYPE_TERMS):
+                continue
             if any(term in text for term in _FILM_TYPE_TERMS):
                 movie_types.add(qid)
         return {qid for qid, types in item_types.items() if any(value in movie_types for value in types)}
