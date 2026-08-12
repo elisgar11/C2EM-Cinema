@@ -2,7 +2,52 @@
 
 {% block object-tools-items %}
     {% if original %}
-        <li><a href="{% url 'admin:core_movie_identify' original.pk %}">Identificar película</a></li>
+        <li><a href="{% url 'admin:core_movie_identify' original.pk %}">Elegir coincidencia</a></li>
     {% endif %}
     {{ block.super }}
+{% endblock %}
+
+{% block after_field_sets %}
+    {{ block.super }}
+    {% if original %}
+        <section class="cine-metadata-panel" aria-labelledby="cine-metadata-title">
+            <div>
+                <p class="cine-kicker">Catálogo externo</p>
+                <h2 id="cine-metadata-title">Metadatos de la película</h2>
+                <p>
+                    Busca automáticamente sinopsis, reparto, duración, tráiler, carátula y fondo.
+                    Los datos que hayas editado manualmente se conservan.
+                </p>
+                {% with identity=original.external_ids.first %}
+                    <p class="cine-metadata-state">
+                        {% if identity %}
+                            <span class="cine-status cine-status-ok">Identificada</span>
+                            <strong>{{ identity.provider|upper }} · {{ identity.external_id }}</strong>
+                        {% else %}
+                            <span class="cine-status cine-status-pending">Sin identificar</span>
+                            <span>La búsqueda intentará elegir una coincidencia inequívoca.</span>
+                        {% endif %}
+                    </p>
+                {% endwith %}
+            </div>
+            <div class="cine-metadata-actions">
+                <form method="post" action="{% url 'admin:core_movie_metadata_auto' original.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="button default cine-primary-action">Buscar metadatos</button>
+                </form>
+                <a class="button" href="{% url 'admin:core_movie_identify' original.pk %}">Elegir coincidencia manualmente</a>
+            </div>
+        </section>
+    {% else %}
+        <section class="cine-metadata-panel cine-metadata-panel-new">
+            <div>
+                <p class="cine-kicker">Catálogo externo</p>
+                <h2>Autocompletado al guardar</h2>
+                <p>
+                    Escribe el título —mejor con el año, por ejemplo <strong>Dune (2021)</strong>— y guarda la película.
+                    C2EM intentará completar automáticamente sus metadatos si el proveedor está configurado.
+                </p>
+            </div>
+        </section>
+    {% endif %}
 {% endblock %}
