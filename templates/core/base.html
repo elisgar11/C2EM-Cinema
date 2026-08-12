@@ -7,6 +7,7 @@
     <meta name="theme-color" content="{{ site_settings.primary_color|default:'#e50914' }}">
     <title>{% block title %}{{ site_settings.cinema_name|default:"Mi cine" }}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="stylesheet" href="{% static 'css/features.css' %}">
     {% block head %}{% endblock %}
 </head>
 <body style="--primary: {{ site_settings.primary_color|default:'#e50914' }}">
@@ -15,7 +16,10 @@
             {% if site_settings.logo %}<img class="brand-logo" src="{{ site_settings.logo.url }}" alt="">{% endif %}
             <span>{{ site_settings.cinema_name|default:"Mi cine" }}</span>
         </a>
-        <a class="admin-link" href="/admin/">Administrar</a>
+        <nav class="topnav" aria-label="Navegación principal">
+            <a class="admin-link" href="{% url 'core:reservation_lookup' %}">Buscar entrada</a>
+            <a class="admin-link" href="/admin/">Administrar</a>
+        </nav>
     </header>
 
     {% if messages %}
