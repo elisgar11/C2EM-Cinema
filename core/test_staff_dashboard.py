@@ -52,10 +52,11 @@ class StaffDashboardTests(TestCase):
         self.login_staff()
 
         response = self.client.get(reverse("core:staff_screenings"))
+        screening = response.context["screenings"][0]
 
         self.assertContains(response, "Alien")
-        self.assertContains(response, "1 reservas")
-        self.assertContains(response, "1 dentro")
+        self.assertEqual(screening.confirmed_count, 1)
+        self.assertEqual(screening.checked_in_count, 1)
 
     def test_dashboard_detail_shows_booking_seats_extras_and_total(self):
         booking = create_booking(self.selection(), "Ana")
@@ -67,7 +68,8 @@ class StaffDashboardTests(TestCase):
         self.assertContains(response, "Ana")
         self.assertContains(response, "B4")
         self.assertContains(response, "1× Palomitas")
-        self.assertContains(response, "9.00")
+        self.assertEqual(response.context["gross_total"], Decimal("9.00"))
+        self.assertEqual(response.context["occupancy_percent"], 50)
 
     def test_cancelled_booking_is_excluded_from_dashboard(self):
         booking = create_booking(self.selection(), "Ana")
@@ -78,3 +80,4 @@ class StaffDashboardTests(TestCase):
 
         self.assertNotContains(response, booking.code)
         self.assertContains(response, "Todavía no hay reservas confirmadas")
+        self.assertEqual(response.context["booking_count"], 0)
