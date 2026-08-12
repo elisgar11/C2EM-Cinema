@@ -93,7 +93,7 @@ class WikidataProviderTests(TestCase):
         self.assertEqual(results[0].external_id, "Q100")
         self.assertEqual(results[0].release_year, 2021)
         self.assertEqual(results[0].overview, "película de ciencia ficción de 2021")
-        self.assertIn("Special%3ARedirect", results[0].poster_url.replace("/", "%2F"))
+        self.assertIn("title=Special:Redirect/file/", results[0].poster_url)
         self.assertIn("width=342", results[0].poster_url)
 
     def test_fetch_maps_description_runtime_cast_roles_and_commons_poster(self):
