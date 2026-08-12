@@ -1,0 +1,88 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#050506">
+    <title>Pre-show · {{ screening.movie.title }}</title>
+    <link rel="stylesheet" href="{% static 'css/features.css' %}">
+</head>
+<body class="preshow-body" style="--primary: {{ site_settings.primary_color|default:'#e50914' }}" data-start="{{ screening.start_at|date:'c' }}">
+    <main class="preshow" aria-live="polite">
+        {% for ad in ads %}
+            <section class="preshow-slide{% if forloop.first %} active{% endif %}" data-slide>
+                {% if ad.media %}<img class="preshow-media" src="{{ ad.media.url }}" alt="">{% endif %}
+                <div class="preshow-copy">
+                    <p class="eyebrow">Publicidad</p>
+                    <h1>{{ ad.headline }}</h1>
+                    {% if ad.body %}<p>{{ ad.body }}</p>{% endif %}
+                </div>
+            </section>
+        {% endfor %}
+
+        <section class="preshow-slide preshow-final{% if not ads %} active{% endif %}" data-slide>
+            <div class="preshow-copy">
+                <p class="eyebrow">A continuación</p>
+                <h1>{{ screening.movie.title }}</h1>
+                <p>{{ screening.room.name }} · {{ screening.start_at|date:"H:i" }}</p>
+                <p class="preshow-meta" id="countdown"></p>
+            </div>
+        </section>
+    </main>
+
+    <div class="preshow-controls">
+        <a href="/admin/core/screening/">Volver</a>
+        <button type="button" id="next-slide">Siguiente</button>
+        <button type="button" id="fullscreen">Pantalla completa</button>
+    </div>
+    <div class="preshow-progress" id="progress"></div>
+
+    <script>
+        (() => {
+            const slides = Array.from(document.querySelectorAll("[data-slide]"));
+            const progress = document.getElementById("progress");
+            const duration = 8000;
+            let index = Math.max(0, slides.findIndex((slide) => slide.classList.contains("active")));
+            let timer;
+
+            function showSlide(nextIndex) {
+                clearTimeout(timer);
+                index = Math.min(Math.max(nextIndex, 0), slides.length - 1);
+                slides.forEach((slide, slideIndex) => slide.classList.toggle("active", slideIndex === index));
+                progress.style.transitionDuration = "0ms";
+                progress.style.width = "0";
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    if (index < slides.length - 1) {
+                        progress.style.transitionDuration = duration + "ms";
+                        progress.style.width = "100%";
+                        timer = setTimeout(() => showSlide(index + 1), duration);
+                    }
+                }));
+            }
+
+            document.getElementById("next-slide").addEventListener("click", () => showSlide(index + 1));
+            document.getElementById("fullscreen").addEventListener("click", () => {
+                if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+                else document.exitFullscreen();
+            });
+
+            const countdown = document.getElementById("countdown");
+            const startAt = new Date(document.body.dataset.start);
+            function updateCountdown() {
+                const seconds = Math.max(0, Math.floor((startAt - new Date()) / 1000));
+                if (seconds <= 0) {
+                    countdown.textContent = "Es la hora. Disfrutad de la película.";
+                    return;
+                }
+                const minutes = Math.floor(seconds / 60);
+                const rest = seconds % 60;
+                countdown.textContent = `Empieza en ${minutes}:${String(rest).padStart(2, "0")}`;
+            }
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+            showSlide(index);
+        })();
+    </script>
+</body>
+</html>

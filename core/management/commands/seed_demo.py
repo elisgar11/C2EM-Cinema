@@ -100,5 +100,14 @@ class Command(BaseCommand):
                 "priority": 5,
             },
         )
+        Advertisement.objects.get_or_create(
+            name="Normas de la sala",
+            defaults={
+                "headline": "Silencia el móvil. Coge palomitas. Empieza el cine.",
+                "body": "Los comentarios de director se reservan para después de los créditos.",
+                "placement": Advertisement.PRESHOW,
+                "priority": 20,
+            },
+        )
 
         self.stdout.write(self.style.SUCCESS("Datos de demostración preparados."))

@@ -3,14 +3,15 @@ from collections import defaultdict
 import qrcode
 import qrcode.image.svg
 from django.contrib import messages
-from django.db.models import Prefetch
+from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Prefetch, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
-from .models import Booking, BookingSeat, Movie, Pack, Product, Screening, Seat
+from .models import Advertisement, Booking, BookingSeat, Movie, Pack, Product, Screening, Seat
 from .services import BookingError, SeatConflict, booking_summary, create_booking, normalize_quantities
 
 
@@ -148,6 +149,21 @@ def checkout(request):
     return render(request, "core/checkout.html", {"summary": summary})
 
 
+@require_http_methods(["GET", "POST"])
+def reservation_lookup(request):
+    code = ""
+    if request.method == "POST":
+        code = request.POST.get("code", "").strip().upper()
+        if not code:
+            messages.error(request, "Escribe el código de la reserva.")
+        else:
+            booking = Booking.objects.filter(code__iexact=code).first()
+            if booking:
+                return redirect("core:ticket", token=booking.ticket_token)
+            messages.error(request, "No hemos encontrado una reserva con ese código.")
+    return render(request, "core/reservation_lookup.html", {"code": code})
+
+
 @require_GET
 def booking_complete(request, token):
     booking = get_object_or_404(
@@ -167,6 +183,19 @@ def ticket(request, token):
     return render(request, "core/ticket.html", {"booking": booking})
 
 
+@require_POST
+@staff_member_required
+def ticket_check_in(request, token):
+    booking = get_object_or_404(Booking, ticket_token=token)
+    if booking.status == Booking.CANCELLED:
+        messages.error(request, "No se puede validar una reserva cancelada.")
+    elif booking.check_in():
+        messages.success(request, f"Entrada {booking.code} validada correctamente.")
+    else:
+        messages.info(request, f"La entrada {booking.code} ya estaba validada.")
+    return redirect("core:ticket", token=booking.ticket_token)
+
+
 @require_GET
 def ticket_qr(request, token):
     booking = get_object_or_404(Booking, ticket_token=token)
@@ -175,3 +204,20 @@ def ticket_qr(request, token):
     response = HttpResponse(content_type="image/svg+xml")
     image.save(response)
     return response
+
+
+@require_GET
+@staff_member_required
+def preshow(request, pk):
+    screening = get_object_or_404(Screening.objects.select_related("movie", "room"), pk=pk)
+    now = timezone.now()
+    ads = (
+        Advertisement.objects.filter(
+            placement=Advertisement.PRESHOW,
+            enabled=True,
+            start_at__lte=now,
+        )
+        .filter(Q(end_at__isnull=True) | Q(end_at__gte=now))
+        .order_by("-priority", "name")
+    )
+    return render(request, "core/preshow.html", {"screening": screening, "ads": ads})

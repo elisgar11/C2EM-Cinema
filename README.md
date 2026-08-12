@@ -14,6 +14,9 @@ MVP funcional implementado:
 - Productos y packs configurables.
 - Checkout sin pago real.
 - Entrada digital con QR.
+- Búsqueda de entradas mediante código de reserva.
+- Check-in de entradas para administradores.
+- Pre-show por sesión con anuncios y cuenta atrás.
 - Cancelación administrativa que libera las butacas.
 - Publicidad programable por ubicación.
 - Branding del cine.
@@ -47,7 +50,7 @@ Después abrir `http://localhost:8000/admin/`.
 docker compose exec web python manage.py seed_demo
 ```
 
-Crea una sala con 30 butacas, 3 películas, 6 sesiones futuras, 5 productos, 2 packs, butacas VIP y 2 anuncios de ejemplo.
+Crea una sala con 30 butacas, 3 películas, 6 sesiones futuras, 5 productos, 2 packs, butacas VIP y anuncios de ejemplo, incluido uno para el pre-show.
 
 ## Crear butacas rápidamente
 
@@ -68,7 +71,33 @@ El comando no duplica butacas ya existentes.
 5. Confirma con su nombre.
 6. Obtiene una entrada digital con QR.
 7. La reserva aparece en el admin.
-8. Si el administrador la cancela mediante la acción `Cancelar reservas seleccionadas`, sus butacas vuelven a quedar disponibles.
+8. El amigo puede recuperar la entrada desde `Buscar entrada` usando su código `CINE-XXXXXX`.
+9. Un administrador puede abrir la entrada y pulsar `Registrar entrada` para hacer check-in.
+10. Si el administrador cancela la reserva, sus butacas vuelven a quedar disponibles.
+
+## Check-in
+
+El QR de la entrada sigue apuntando a la URL pública de esa entrada. Si un administrador autenticado abre esa misma URL, aparece un control adicional para validar el acceso.
+
+El check-in:
+
+- solo está disponible para usuarios staff;
+- queda registrado con fecha y hora;
+- es idempotente: validar dos veces no crea dos accesos;
+- no se permite en reservas canceladas.
+
+También puede realizarse en lote desde la lista de reservas de Django Admin.
+
+## Pre-show
+
+Cada sesión muestra un enlace `Pre-show` en Django Admin. La vista está protegida para staff y está pensada para abrirse en la pantalla/proyector de la sala.
+
+El pre-show:
+
+- rota los anuncios activos de ubicación `Pre-show`;
+- respeta fechas de inicio/fin y prioridad;
+- termina mostrando película, sala, hora y una cuenta atrás;
+- dispone de botón de pantalla completa y avance manual.
 
 ## Publicidad
 
@@ -78,6 +107,7 @@ Los anuncios se crean en `Administración > Anuncios` y pueden colocarse en:
 - Detalle de película.
 - Checkout.
 - Entrada.
+- Pre-show.
 
 Se pueden programar con fecha de inicio/fin y prioridad. Imagen/GIF y enlace son opcionales.
 
