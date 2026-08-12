@@ -8,33 +8,49 @@
     <title>{% block title %}{{ site_settings.cinema_name|default:"Mi cine" }}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <link rel="stylesheet" href="{% static 'css/features.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cinema.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cinema-media.css' %}">
     {% block head %}{% endblock %}
 </head>
-<body style="--primary: {{ site_settings.primary_color|default:'#e50914' }}">
-    <header class="topbar">
-        <a class="brand" href="{% url 'core:home' %}">
-            {% if site_settings.logo %}<img class="brand-logo" src="{{ site_settings.logo.url }}" alt="">{% endif %}
-            <span>{{ site_settings.cinema_name|default:"Mi cine" }}</span>
-        </a>
-        <nav class="topnav" aria-label="Navegación principal">
-            <a class="admin-link" href="{% url 'core:reservation_lookup' %}">Buscar entrada</a>
-            {% if request.user.is_staff %}<a class="admin-link" href="{% url 'core:staff_screenings' %}">Sesiones</a>{% endif %}
-            {% if request.user.is_staff %}<a class="admin-link" href="{% url 'core:ticket_scanner' %}">Escanear</a>{% endif %}
-            <a class="admin-link" href="/admin/">Administrar</a>
-        </nav>
+<body class="cinema-body" style="--primary: {{ site_settings.primary_color|default:'#e50914' }}">
+    <header class="cinema-header">
+        <div class="cinema-header-inner">
+            <a class="cinema-brand" href="{% url 'core:home' %}" aria-label="Ir a la cartelera">
+                {% if site_settings.logo %}<img class="cinema-brand-logo" src="{{ site_settings.logo.url }}" alt="">{% endif %}
+                <span class="cinema-brand-mark" aria-hidden="true">C</span>
+                <span class="cinema-brand-name">{{ site_settings.cinema_name|default:"Mi cine" }}</span>
+            </a>
+            <nav class="cinema-nav" aria-label="Navegación principal">
+                <a href="{% url 'core:home' %}#cartelera">Cartelera</a>
+                <a href="{% url 'core:reservation_lookup' %}">Mi entrada</a>
+                {% if request.user.is_staff %}
+                    <span class="cinema-nav-separator" aria-hidden="true"></span>
+                    <a href="{% url 'core:staff_screenings' %}">Sesiones</a>
+                    <a href="{% url 'core:ticket_scanner' %}">Escanear</a>
+                    <a href="/admin/">Admin</a>
+                {% else %}
+                    <a class="cinema-nav-admin" href="/admin/">Staff</a>
+                {% endif %}
+            </nav>
+        </div>
     </header>
 
     {% if messages %}
-        <div class="messages shell compact">
+        <div class="messages shell compact cinema-messages">
             {% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}
         </div>
     {% endif %}
 
     <main>{% block content %}{% endblock %}</main>
 
-    <footer class="footer shell compact">
-        <span>{{ site_settings.cinema_name|default:"Mi cine" }}</span>
-        <span>Cine privado autohospedado</span>
+    <footer class="cinema-footer">
+        <div class="cinema-footer-inner">
+            <div>
+                <strong>{{ site_settings.cinema_name|default:"Mi cine" }}</strong>
+                <span>Cine privado · hecho para compartir una buena película</span>
+            </div>
+            <a href="{% url 'core:reservation_lookup' %}">Buscar entrada</a>
+        </div>
     </footer>
     {% block scripts %}{% endblock %}
 </body>

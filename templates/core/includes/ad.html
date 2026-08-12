@@ -1,7 +1,15 @@
-{% if ad %}<aside class="ad-card">
-    {% if ad.media %}<img src="{{ ad.media.url }}" alt="">{% endif %}
-    <div>
-        <p class="ad-label">Publicidad de los amigos</p>
+{% if ad %}<aside class="ad-card cinema-ad">
+    {% if ad.media %}
+        <div class="cinema-ad-media">
+            {% if ad.is_video %}
+                <video src="{{ ad.media.url }}" autoplay muted loop playsinline aria-label="Publicidad: {{ ad.headline }}"></video>
+            {% else %}
+                <img src="{{ ad.media.url }}" alt="">
+            {% endif %}
+        </div>
+    {% endif %}
+    <div class="cinema-ad-copy">
+        <p class="ad-label">Spot de nuestros amigos</p>
         <h3>{{ ad.headline }}</h3>
         {% if ad.body %}<p>{{ ad.body }}</p>{% endif %}
         {% if ad.target_url %}<a href="{{ ad.target_url }}" target="_blank" rel="noopener">Ver más ↗</a>{% endif %}
