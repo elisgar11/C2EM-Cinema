@@ -1,4 +1,6 @@
 from django.contrib import admin, messages
+from django.urls import reverse
+from django.utils.html import format_html
 
 from .models import (
     Advertisement,
@@ -63,10 +65,17 @@ class SeatAdmin(admin.ModelAdmin):
 
 @admin.register(Screening)
 class ScreeningAdmin(admin.ModelAdmin):
-    list_display = ("movie", "start_at", "room", "base_price", "enabled")
+    list_display = ("movie", "start_at", "room", "base_price", "enabled", "preshow_link")
     list_filter = ("enabled", "room", "movie")
     date_hierarchy = "start_at"
     autocomplete_fields = ("movie", "room")
+
+    @admin.display(description="Pre-show")
+    def preshow_link(self, obj):
+        return format_html(
+            '<a href="{}" target="_blank" rel="noopener">Abrir</a>',
+            reverse("core:preshow", args=[obj.pk]),
+        )
 
 
 @admin.register(Product)
@@ -116,12 +125,32 @@ class BookingPackInline(admin.TabularInline):
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ("code", "customer_name", "movie", "screening_time", "seat_labels", "status", "booking_total", "created_at")
+    list_display = (
+        "code",
+        "customer_name",
+        "movie",
+        "screening_time",
+        "seat_labels",
+        "status",
+        "checked_in",
+        "booking_total",
+        "created_at",
+    )
     list_filter = ("status", "screening__movie")
     search_fields = ("code", "customer_name")
-    readonly_fields = ("code", "screening", "customer_name", "notes", "status", "ticket_token", "created_at", "updated_at")
+    readonly_fields = (
+        "code",
+        "screening",
+        "customer_name",
+        "notes",
+        "status",
+        "checked_in_at",
+        "ticket_token",
+        "created_at",
+        "updated_at",
+    )
     inlines = (BookingSeatInline, BookingProductInline, BookingPackInline)
-    actions = ("cancel_bookings",)
+    actions = ("check_in_bookings", "cancel_bookings")
 
     @admin.display(description="Película")
     def movie(self, obj):
@@ -135,9 +164,18 @@ class BookingAdmin(admin.ModelAdmin):
     def seat_labels(self, obj):
         return ", ".join(item.seat.label for item in obj.seats.all())
 
+    @admin.display(boolean=True, description="Entrada")
+    def checked_in(self, obj):
+        return bool(obj.checked_in_at)
+
     @admin.display(description="Total")
     def booking_total(self, obj):
         return obj.total
+
+    @admin.action(description="Validar entrada de reservas seleccionadas")
+    def check_in_bookings(self, request, queryset):
+        count = sum(1 for booking in queryset if booking.check_in())
+        self.message_user(request, f"{count} entrada(s) validada(s).", messages.SUCCESS)
 
     @admin.action(description="Cancelar reservas seleccionadas")
     def cancel_bookings(self, request, queryset):
