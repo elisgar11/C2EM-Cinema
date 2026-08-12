@@ -20,4 +20,5 @@ urlpatterns = [
     path("staff/scanner/", views.ticket_scanner, name="ticket_scanner"),
     path("staff/screenings/", staff_views.screening_dashboard_list, name="staff_screenings"),
     path("staff/screenings/<int:pk>/", staff_views.screening_dashboard, name="screening_dashboard"),
+    path("staff/screenings/<int:pk>/live/", staff_views.screening_dashboard_live, name="screening_dashboard_live"),
 ]
