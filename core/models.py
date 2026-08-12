@@ -140,6 +140,7 @@ class Booking(models.Model):
     customer_name = models.CharField("nombre", max_length=150)
     notes = models.TextField("notas", blank=True)
     status = models.CharField("estado", max_length=20, choices=STATUS_CHOICES, default=CONFIRMED)
+    checked_in_at = models.DateTimeField("entrada validada", null=True, blank=True, editable=False)
     ticket_token = models.UUIDField("token de entrada", default=uuid.uuid4, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -164,6 +165,20 @@ class Booking(models.Model):
             self.status = self.CANCELLED
             self.save(update_fields=["status", "updated_at"])
             self.seats.filter(active=True).update(active=False)
+
+    def check_in(self):
+        if self.status != self.CONFIRMED or self.checked_in_at:
+            return False
+        now = timezone.now()
+        updated = Booking.objects.filter(
+            pk=self.pk,
+            status=self.CONFIRMED,
+            checked_in_at__isnull=True,
+        ).update(checked_in_at=now, updated_at=now)
+        if updated:
+            self.checked_in_at = now
+            self.updated_at = now
+        return bool(updated)
 
     @property
     def total(self):
@@ -285,11 +300,13 @@ class Advertisement(models.Model):
     MOVIE = "movie"
     CHECKOUT = "checkout"
     TICKET = "ticket"
+    PRESHOW = "preshow"
     PLACEMENT_CHOICES = [
         (HOME, "Portada"),
         (MOVIE, "Película"),
         (CHECKOUT, "Checkout"),
         (TICKET, "Entrada"),
+        (PRESHOW, "Pre-show"),
     ]
 
     name = models.CharField("nombre interno", max_length=150)
