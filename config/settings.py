@@ -96,6 +96,7 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
 MOVIE_METADATA_PROVIDER = os.environ.get("MOVIE_METADATA_PROVIDER", "tmdb")
+MOVIE_METADATA_FALLBACK_PROVIDER = os.environ.get("MOVIE_METADATA_FALLBACK_PROVIDER", "wikidata")
 MOVIE_METADATA_AUTO_FETCH = os.environ.get("MOVIE_METADATA_AUTO_FETCH", "true").lower() in {"1", "true", "yes", "on"}
 MOVIE_METADATA_FETCH_IMAGES = os.environ.get("MOVIE_METADATA_FETCH_IMAGES", "true").lower() in {"1", "true", "yes", "on"}
 MOVIE_METADATA_IMAGE_TIMEOUT_SECONDS = os.environ.get("MOVIE_METADATA_IMAGE_TIMEOUT_SECONDS", "8")
@@ -109,5 +110,13 @@ TMDB_IMAGE_BASE_URL = os.environ.get("TMDB_IMAGE_BASE_URL", "https://image.tmdb.
 TMDB_POSTER_PREVIEW_SIZE = os.environ.get("TMDB_POSTER_PREVIEW_SIZE", "w342")
 TMDB_POSTER_SIZE = os.environ.get("TMDB_POSTER_SIZE", "w780")
 TMDB_BACKDROP_SIZE = os.environ.get("TMDB_BACKDROP_SIZE", "w1280")
+WIKIDATA_ENABLED = os.environ.get("WIKIDATA_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
+WIKIDATA_LANGUAGE = os.environ.get("WIKIDATA_LANGUAGE", "es")
+WIKIDATA_FALLBACK_LANGUAGE = os.environ.get("WIKIDATA_FALLBACK_LANGUAGE", "en")
+WIKIDATA_TIMEOUT_SECONDS = os.environ.get("WIKIDATA_TIMEOUT_SECONDS", "8")
+WIKIDATA_MAX_CAST_MEMBERS = os.environ.get("WIKIDATA_MAX_CAST_MEMBERS", "12")
+WIKIDATA_POSTER_PREVIEW_WIDTH = os.environ.get("WIKIDATA_POSTER_PREVIEW_WIDTH", "342")
+WIKIDATA_POSTER_WIDTH = os.environ.get("WIKIDATA_POSTER_WIDTH", "780")
+WIKIDATA_USER_AGENT = os.environ.get("WIKIDATA_USER_AGENT", "C2EM-Cinema/1.0")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
