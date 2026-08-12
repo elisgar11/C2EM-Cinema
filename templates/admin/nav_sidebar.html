@@ -1,0 +1,54 @@
+{% load i18n %}
+<nav id="nav-sidebar" class="cine-admin-sidebar" aria-label="Navegación de administración">
+    <div class="cine-sidebar-inner">
+        <a class="cine-sidebar-home {% if request.resolver_match.url_name == 'index' %}is-active{% endif %}" href="{% url 'admin:index' %}">
+            <span class="cine-sidebar-icon" aria-hidden="true">⌂</span>
+            <span>Resumen</span>
+        </a>
+
+        <div class="cine-sidebar-group">
+            <p class="cine-sidebar-label">Cartelera</p>
+            {% if perms.core.view_movie %}<a href="{% url 'admin:core_movie_changelist' %}">Películas</a>{% endif %}
+            {% if perms.core.view_screening %}<a href="{% url 'admin:core_screening_changelist' %}">Sesiones</a>{% endif %}
+            {% if perms.core.view_room %}<a href="{% url 'admin:core_room_changelist' %}">Salas</a>{% endif %}
+            {% if perms.core.view_seat %}<a href="{% url 'admin:core_seat_changelist' %}">Butacas</a>{% endif %}
+        </div>
+
+        <div class="cine-sidebar-group">
+            <p class="cine-sidebar-label">Operación</p>
+            {% if perms.core.view_booking %}<a href="{% url 'admin:core_booking_changelist' %}">Reservas</a>{% endif %}
+            <a href="{% url 'core:ticket_scanner' %}">Escáner de entradas</a>
+            <a href="{% url 'core:staff_screenings' %}">Panel de sala</a>
+        </div>
+
+        <div class="cine-sidebar-group">
+            <p class="cine-sidebar-label">Bar y extras</p>
+            {% if perms.core.view_product %}<a href="{% url 'admin:core_product_changelist' %}">Productos</a>{% endif %}
+            {% if perms.core.view_pack %}<a href="{% url 'admin:core_pack_changelist' %}">Packs</a>{% endif %}
+        </div>
+
+        <div class="cine-sidebar-group">
+            <p class="cine-sidebar-label">Comunicación</p>
+            {% if perms.core.view_advertisement %}<a href="{% url 'admin:core_advertisement_changelist' %}">Anuncios y pre-show</a>{% endif %}
+        </div>
+
+        <div class="cine-sidebar-group">
+            <p class="cine-sidebar-label">Metadatos</p>
+            {% if perms.catalog.view_castmember %}<a href="{% url 'admin:catalog_castmember_changelist' %}">Reparto</a>{% endif %}
+            {% if perms.catalog.view_movieexternalid %}<a href="{% url 'admin:catalog_movieexternalid_changelist' %}">Identificadores externos</a>{% endif %}
+        </div>
+
+        <div class="cine-sidebar-group">
+            <p class="cine-sidebar-label">Configuración</p>
+            {% if perms.core.view_sitesettings %}<a href="{% url 'admin:core_sitesettings_changelist' %}">Configuración del cine</a>{% endif %}
+        </div>
+
+        {% if perms.auth.view_user or perms.auth.view_group %}
+        <div class="cine-sidebar-group cine-sidebar-system">
+            <p class="cine-sidebar-label">Sistema</p>
+            {% if perms.auth.view_user %}<a href="{% url 'admin:auth_user_changelist' %}">Usuarios</a>{% endif %}
+            {% if perms.auth.view_group %}<a href="{% url 'admin:auth_group_changelist' %}">Grupos y permisos</a>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</nav>

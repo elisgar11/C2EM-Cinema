@@ -11,19 +11,26 @@
 {% block branding %}
 <div class="cine-admin-brand">
     <a href="{% url 'admin:index' %}" class="cine-admin-brand-link" aria-label="Centro de control C2EM Cinema">
-        <span class="cine-admin-mark">C</span>
-        <span>
+        <span class="cine-admin-mark" aria-hidden="true">C</span>
+        <span class="cine-admin-brand-copy">
             <strong>C2EM Cinema</strong>
-            <small>Centro de control</small>
+            <small>Administración</small>
         </span>
     </a>
 </div>
 {% endblock %}
 
 {% block nav-global %}
-<nav class="cine-admin-global" aria-label="Accesos del cine">
-    <a href="{% url 'core:home' %}" target="_blank" rel="noopener">Abrir cine</a>
-    <a href="{% url 'core:staff_screenings' %}">Sesiones</a>
-    <a href="{% url 'core:ticket_scanner' %}">Escáner</a>
+<nav class="cine-admin-global" aria-label="Accesos operativos">
+    <a class="cine-admin-global-link" href="{% url 'core:staff_screenings' %}">
+        <span>Panel de sala</span>
+    </a>
+    <a class="cine-admin-global-link" href="{% url 'core:ticket_scanner' %}">
+        <span>Escáner</span>
+    </a>
+    <a class="cine-admin-global-link cine-admin-open-cinema" href="{% url 'core:home' %}" target="_blank" rel="noopener">
+        <span>Abrir cine</span>
+        <span aria-hidden="true">↗</span>
+    </a>
 </nav>
 {% endblock %}
