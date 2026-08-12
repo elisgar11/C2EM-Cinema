@@ -18,6 +18,7 @@ from .providers import (
     TmdbMovieMetadataProvider,
     WikidataMovieMetadataProvider,
 )
+from .runtime_config import metadata_provider_preference
 
 
 @dataclass(frozen=True)
@@ -47,7 +48,7 @@ def _provider_instance(name: str) -> MovieMetadataProvider:
 
 
 def get_movie_metadata_provider(name: str | None = None) -> MovieMetadataProvider:
-    provider_name = (name or getattr(settings, "MOVIE_METADATA_PROVIDER", "tmdb")).strip().lower()
+    provider_name = (name or metadata_provider_preference()).strip().lower()
     provider = _provider_instance(provider_name)
     if provider.is_configured():
         return provider
