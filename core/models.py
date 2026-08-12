@@ -2,6 +2,7 @@ import secrets
 import uuid
 from decimal import Decimal
 
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
@@ -312,9 +313,14 @@ class Advertisement(models.Model):
     name = models.CharField("nombre interno", max_length=150)
     headline = models.CharField("titular", max_length=200)
     body = models.TextField("texto", blank=True)
-    media = models.ImageField("imagen/GIF", upload_to="ads/", blank=True)
+    media = models.FileField("imagen/GIF/vídeo", upload_to="ads/", blank=True)
     target_url = models.URLField("enlace", blank=True)
     placement = models.CharField("ubicación", max_length=20, choices=PLACEMENT_CHOICES)
+    preshow_duration_seconds = models.PositiveSmallIntegerField(
+        "duración pre-show (segundos)",
+        default=8,
+        validators=[MinValueValidator(1), MaxValueValidator(300)],
+    )
     start_at = models.DateTimeField("inicio", default=timezone.now)
     end_at = models.DateTimeField("fin", null=True, blank=True)
     priority = models.IntegerField("prioridad", default=0)
@@ -326,6 +332,12 @@ class Advertisement(models.Model):
         ordering = ["-priority", "name"]
         verbose_name = "anuncio"
         verbose_name_plural = "anuncios"
+
+    @property
+    def media_is_video(self):
+        if not self.media:
+            return False
+        return self.media.name.lower().endswith((".mp4", ".webm"))
 
     def __str__(self):
         return self.name
