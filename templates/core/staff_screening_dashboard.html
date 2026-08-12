@@ -1,0 +1,126 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}{{ screening.movie.title }} · Operación{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<section class="shell section staff-dashboard">
+    <div class="dashboard-heading">
+        <div>
+            <p class="eyebrow">{{ screening.start_at|date:"D j M · H:i" }} · {{ screening.room.name }}</p>
+            <h1>{{ screening.movie.title }}</h1>
+            <p class="lead">Estado operativo de la sesión en tiempo real de página: reservas confirmadas, accesos y extras.</p>
+        </div>
+        <div class="dashboard-actions">
+            <a class="button secondary" href="{% url 'core:staff_screenings' %}">Todas las sesiones</a>
+            <a class="button secondary" href="{% url 'core:preshow' screening.pk %}" target="_blank" rel="noopener">Pre-show</a>
+            <a class="button" href="{% url 'core:ticket_scanner' %}">Escanear</a>
+        </div>
+    </div>
+
+    <div class="dashboard-kpis">
+        <article class="dashboard-kpi">
+            <span>Reservas</span>
+            <strong>{{ booking_count }}</strong>
+            <small>confirmadas</small>
+        </article>
+        <article class="dashboard-kpi">
+            <span>Check-in</span>
+            <strong>{{ checked_in_count }}/{{ booking_count }}</strong>
+            <small>{{ checkin_percent }}% validado</small>
+        </article>
+        <article class="dashboard-kpi">
+            <span>Ocupación</span>
+            <strong>{{ reserved_seats }}/{{ total_seats }}</strong>
+            <small>{{ occupancy_percent }}% de butacas</small>
+        </article>
+        <article class="dashboard-kpi">
+            <span>Importe</span>
+            <strong>{{ gross_total }}{{ site_settings.currency_symbol }}</strong>
+            <small>reservas confirmadas</small>
+        </article>
+    </div>
+
+    <div class="dashboard-grid">
+        <section class="dashboard-panel dashboard-bookings">
+            <div class="dashboard-panel-heading">
+                <div>
+                    <p class="eyebrow">Acceso</p>
+                    <h2>Reservas</h2>
+                </div>
+                <span>{{ booking_count }} confirmadas</span>
+            </div>
+
+            <div class="dashboard-table-wrap">
+                <table class="dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>Reserva</th>
+                            <th>Butacas</th>
+                            <th>Extras</th>
+                            <th>Entrada</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in bookings %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'core:ticket' booking.ticket_token %}" target="_blank" rel="noopener"><strong>{{ booking.code }}</strong></a>
+                                    <span>{{ booking.customer_name }}</span>
+                                </td>
+                                <td>
+                                    {% for item in booking.seats.all %}{{ item.seat.label }}{% if not forloop.last %} · {% endif %}{% endfor %}
+                                </td>
+                                <td>
+                                    {% for item in booking.products.all %}{{ item.quantity }}× {{ item.product.name }}{% if not forloop.last or booking.packs.all %}<br>{% endif %}{% endfor %}
+                                    {% for item in booking.packs.all %}{{ item.quantity }}× {{ item.pack.name }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                                    {% if not booking.products.all and not booking.packs.all %}<span class="muted">—</span>{% endif %}
+                                </td>
+                                <td>
+                                    {% if booking.checked_in_at %}
+                                        <span class="dashboard-status ok">Dentro · {{ booking.checked_in_at|date:"H:i" }}</span>
+                                    {% else %}
+                                        <span class="dashboard-status">Pendiente</span>
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ booking.total }}{{ site_settings.currency_symbol }}</strong></td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="5" class="dashboard-empty">Todavía no hay reservas confirmadas.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <aside class="dashboard-panel dashboard-extras">
+            <div class="dashboard-panel-heading">
+                <div>
+                    <p class="eyebrow">Preparación</p>
+                    <h2>Extras</h2>
+                </div>
+            </div>
+
+            <h3>Productos</h3>
+            <div class="extras-totals">
+                {% for name, quantity in product_totals %}
+                    <div><span>{{ name }}</span><strong>{{ quantity }}</strong></div>
+                {% empty %}
+                    <p class="muted">Sin productos.</p>
+                {% endfor %}
+            </div>
+
+            <h3>Packs</h3>
+            <div class="extras-totals">
+                {% for name, quantity in pack_totals %}
+                    <div><span>{{ name }}</span><strong>{{ quantity }}</strong></div>
+                {% empty %}
+                    <p class="muted">Sin packs.</p>
+                {% endfor %}
+            </div>
+        </aside>
+    </div>
+</section>
+{% endblock %}
