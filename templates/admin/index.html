@@ -1,61 +1,114 @@
 {% extends "admin/base_site.html" %}
-{% load i18n %}
+{% load i18n admin_dashboard %}
 
 {% block bodyclass %}{{ block.super }} dashboard cine-admin-dashboard{% endblock %}
 {% block breadcrumbs %}{% endblock %}
 
 {% block content %}
-<div id="content-main">
+{% cinema_admin_dashboard as dashboard %}
+<div id="content-main" class="cine-admin-home">
     <section class="cine-admin-hero">
         <div>
-            <p class="cine-kicker">Operaciones</p>
+            <p class="cine-kicker">Estado del cine</p>
             <h1>Centro de control</h1>
-            <p>Gestiona cartelera, sesiones, reservas y acceso a sala desde un único punto.</p>
+            <p>Lo importante para preparar la cartelera, operar las sesiones y atender a los invitados.</p>
         </div>
+        {% if perms.core.add_movie %}
         <a class="button default cine-primary-action" href="{% url 'admin:core_movie_add' %}">Añadir película</a>
+        {% endif %}
     </section>
 
-    <section class="cine-quick-grid" aria-label="Acciones rápidas">
-        <a class="cine-quick-card" href="{% url 'admin:core_movie_changelist' %}">
-            <span class="cine-quick-index">01</span>
-            <strong>Películas</strong>
-            <span>Cartelera, imágenes y metadatos</span>
+    <section class="cine-stat-grid" aria-label="Resumen operativo">
+        <a class="cine-stat-card" href="{% url 'admin:core_movie_changelist' %}">
+            <span class="cine-stat-label">Películas programadas</span>
+            <strong>{{ dashboard.scheduled_movies }}</strong>
+            <span class="cine-stat-meta">con sesiones futuras</span>
         </a>
-        <a class="cine-quick-card" href="{% url 'admin:core_screening_changelist' %}">
-            <span class="cine-quick-index">02</span>
-            <strong>Sesiones</strong>
-            <span>Horarios, salas y precios</span>
+        <a class="cine-stat-card" href="{% url 'admin:core_screening_changelist' %}">
+            <span class="cine-stat-label">Sesiones de hoy</span>
+            <strong>{{ dashboard.today_screenings }}</strong>
+            <span class="cine-stat-meta">desde este momento</span>
         </a>
-        <a class="cine-quick-card" href="{% url 'admin:core_booking_changelist' %}">
-            <span class="cine-quick-index">03</span>
-            <strong>Reservas</strong>
-            <span>Entradas, check-in y cancelaciones</span>
+        <a class="cine-stat-card" href="{% url 'admin:core_booking_changelist' %}">
+            <span class="cine-stat-label">Reservas próximas</span>
+            <strong>{{ dashboard.upcoming_bookings }}</strong>
+            <span class="cine-stat-meta">confirmadas</span>
         </a>
-        <a class="cine-quick-card" href="{% url 'core:ticket_scanner' %}">
-            <span class="cine-quick-index">04</span>
-            <strong>Escáner</strong>
-            <span>Validar entradas en puerta</span>
-        </a>
-        <a class="cine-quick-card" href="{% url 'core:staff_screenings' %}">
-            <span class="cine-quick-index">05</span>
-            <strong>Panel de sala</strong>
-            <span>Ocupación y estado en directo</span>
-        </a>
-        <a class="cine-quick-card" href="{% url 'admin:core_advertisement_changelist' %}">
-            <span class="cine-quick-index">06</span>
-            <strong>Anuncios</strong>
-            <span>Spots, ubicaciones y pre-show</span>
+        <a class="cine-stat-card" href="{% url 'admin:core_booking_changelist' %}">
+            <span class="cine-stat-label">Check-ins hoy</span>
+            <strong>{{ dashboard.checkins_today }}</strong>
+            <span class="cine-stat-meta">entradas validadas</span>
         </a>
     </section>
 
-    <section class="cine-admin-models">
-        <div class="cine-section-heading">
-            <div>
-                <p class="cine-kicker">Configuración</p>
-                <h2>Todos los módulos</h2>
+    <div class="cine-dashboard-grid">
+        <section class="cine-dashboard-panel cine-next-session">
+            <div class="cine-section-heading cine-section-heading-row">
+                <div>
+                    <p class="cine-kicker">Siguiente pase</p>
+                    <h2>Próxima sesión</h2>
+                </div>
+                <a href="{% url 'admin:core_screening_changelist' %}">Ver sesiones</a>
             </div>
+
+            {% if dashboard.next_screening %}
+                <div class="cine-next-session-main">
+                    <div>
+                        <span class="cine-session-time">{{ dashboard.next_screening.screening.start_at|date:"H:i" }}</span>
+                        <h3>{{ dashboard.next_screening.screening.movie.title }}</h3>
+                        <p>{{ dashboard.next_screening.screening.room.name }} · {{ dashboard.next_screening.screening.start_at|date:"D d M" }}</p>
+                    </div>
+                    <div class="cine-occupancy" aria-label="Ocupación {{ dashboard.next_screening.occupancy }} por ciento">
+                        <strong>{{ dashboard.next_screening.occupancy }}%</strong>
+                        <span>{{ dashboard.next_screening.reserved }}/{{ dashboard.next_screening.capacity }} butacas</span>
+                    </div>
+                </div>
+                <div class="cine-occupancy-bar" aria-hidden="true">
+                    <span style="width: {{ dashboard.next_screening.occupancy }}%"></span>
+                </div>
+                <div class="cine-session-actions">
+                    <a class="button default" href="{{ dashboard.next_screening.dashboard_url }}">Abrir panel de sala</a>
+                    <a class="button" href="{{ dashboard.next_screening.preshow_url }}">Abrir pre-show</a>
+                </div>
+            {% else %}
+                <div class="cine-empty-state">
+                    <strong>No hay sesiones futuras</strong>
+                    <p>Crea una sesión para que aparezca aquí el próximo pase y su ocupación.</p>
+                    {% if perms.core.add_screening %}<a class="button" href="{% url 'admin:core_screening_add' %}">Crear sesión</a>{% endif %}
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="cine-dashboard-panel cine-tasks-panel">
+            <div class="cine-section-heading">
+                <p class="cine-kicker">Atajos</p>
+                <h2>Tareas frecuentes</h2>
+            </div>
+            <div class="cine-task-list">
+                {% if perms.core.add_movie %}<a href="{% url 'admin:core_movie_add' %}"><strong>Añadir película</strong><span>Buscar metadatos y crear ficha</span></a>{% endif %}
+                {% if perms.core.add_screening %}<a href="{% url 'admin:core_screening_add' %}"><strong>Programar sesión</strong><span>Horario, sala y precio</span></a>{% endif %}
+                <a href="{% url 'core:ticket_scanner' %}"><strong>Escanear entrada</strong><span>Check-in en puerta</span></a>
+                {% if perms.core.add_advertisement %}<a href="{% url 'admin:core_advertisement_add' %}"><strong>Crear anuncio</strong><span>Portada, ticket o pre-show</span></a>{% endif %}
+                {% if perms.core.change_sitesettings %}<a href="{% url 'admin:core_sitesettings_changelist' %}"><strong>Configurar cine</strong><span>Identidad y proveedores</span></a>{% endif %}
+            </div>
+        </section>
+    </div>
+
+    <section class="cine-management-section">
+        <div class="cine-section-heading cine-section-heading-row">
+            <div>
+                <p class="cine-kicker">Gestión</p>
+                <h2>Áreas del cine</h2>
+            </div>
+            <span class="cine-provider-state">Metadatos: {{ dashboard.provider_name|upper }}</span>
         </div>
-        {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+        <div class="cine-management-grid">
+            <a href="{% url 'admin:core_movie_changelist' %}"><span class="cine-management-number">01</span><strong>Cartelera</strong><span>Películas, sesiones, salas y butacas</span></a>
+            <a href="{% url 'admin:core_booking_changelist' %}"><span class="cine-management-number">02</span><strong>Operación</strong><span>Reservas, acceso y sala</span></a>
+            <a href="{% url 'admin:core_product_changelist' %}"><span class="cine-management-number">03</span><strong>Bar y extras</strong><span>Productos y packs</span></a>
+            <a href="{% url 'admin:core_advertisement_changelist' %}"><span class="cine-management-number">04</span><strong>Comunicación</strong><span>Anuncios y pre-show</span></a>
+            <a href="{% url 'admin:core_sitesettings_changelist' %}"><span class="cine-management-number">05</span><strong>Configuración</strong><span>Marca y proveedores de metadatos</span></a>
+        </div>
     </section>
 </div>
 {% endblock %}
