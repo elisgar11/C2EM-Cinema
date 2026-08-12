@@ -12,7 +12,12 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from .models import CastMember, MovieExternalId
-from .providers import MovieMetadataProvider, ProviderError, TmdbMovieMetadataProvider
+from .providers import (
+    MovieMetadataProvider,
+    ProviderError,
+    TmdbMovieMetadataProvider,
+    WikidataMovieMetadataProvider,
+)
 
 
 @dataclass(frozen=True)
@@ -26,16 +31,33 @@ class MetadataSyncResult:
     artwork_errors: tuple[str, ...] = ()
 
 
-PROVIDERS = {"tmdb": TmdbMovieMetadataProvider}
+PROVIDERS = {
+    "tmdb": TmdbMovieMetadataProvider,
+    "wikidata": WikidataMovieMetadataProvider,
+}
 _ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
-def get_movie_metadata_provider(name: str | None = None) -> MovieMetadataProvider:
-    provider_name = (name or getattr(settings, "MOVIE_METADATA_PROVIDER", "tmdb")).strip().lower()
+def _provider_instance(name: str) -> MovieMetadataProvider:
+    provider_name = name.strip().lower()
     provider_cls = PROVIDERS.get(provider_name)
     if provider_cls is None:
         raise ProviderError(f"Proveedor de metadatos no soportado: {provider_name}")
     return provider_cls()
+
+
+def get_movie_metadata_provider(name: str | None = None) -> MovieMetadataProvider:
+    provider_name = (name or getattr(settings, "MOVIE_METADATA_PROVIDER", "tmdb")).strip().lower()
+    provider = _provider_instance(provider_name)
+    if provider.is_configured():
+        return provider
+
+    fallback_name = str(getattr(settings, "MOVIE_METADATA_FALLBACK_PROVIDER", "wikidata")).strip().lower()
+    if fallback_name and fallback_name != provider_name:
+        fallback = _provider_instance(fallback_name)
+        if fallback.is_configured():
+            return fallback
+    return provider
 
 
 def split_title_year(title: str) -> tuple[str, int | None]:
