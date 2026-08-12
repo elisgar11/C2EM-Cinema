@@ -13,6 +13,7 @@ class MovieSearchResult:
     title: str
     release_year: int | None = None
     overview: str = ""
+    poster_url: str = ""
 
 
 @dataclass(frozen=True)

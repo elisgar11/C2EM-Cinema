@@ -1,10 +1,19 @@
 from django.conf import settings
 from django.contrib import admin, messages
-from django.urls import reverse
+from django.core.exceptions import PermissionDenied
+from django.http import Http404
+from django.shortcuts import redirect
+from django.template.response import TemplateResponse
+from django.urls import path, reverse
 from django.utils.html import format_html
 
 from catalog.providers import ProviderError
-from catalog.services import get_movie_metadata_provider, sync_movie_metadata
+from catalog.services import (
+    get_movie_metadata_provider,
+    identify_movie_metadata,
+    split_title_year,
+    sync_movie_metadata,
+)
 
 from .models import (
     Advertisement,
@@ -40,11 +49,22 @@ class SiteSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(Movie)
 class MovieAdmin(admin.ModelAdmin):
-    list_display = ("title", "duration_minutes", "age_rating", "metadata_source", "enabled")
+    change_form_template = "admin/core/movie/change_form.html"
+    list_display = ("title", "duration_minutes", "age_rating", "metadata_source", "identify_action", "enabled")
     list_filter = ("enabled",)
     search_fields = ("title",)
     prepopulated_fields = {"slug": ("title",)}
     actions = ("complete_metadata", "refresh_metadata")
+
+    def get_urls(self):
+        custom = [
+            path(
+                "<path:object_id>/identify/",
+                self.admin_site.admin_view(self.identify_view),
+                name="core_movie_identify",
+            )
+        ]
+        return custom + super().get_urls()
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("external_ids")
@@ -55,6 +75,68 @@ class MovieAdmin(admin.ModelAdmin):
         if identity is None:
             return "—"
         return f"{identity.provider}:{identity.external_id}"
+
+    @admin.display(description="Identificar")
+    def identify_action(self, obj):
+        url = reverse("admin:core_movie_identify", args=[obj.pk])
+        return format_html('<a class="button" href="{}">Identificar</a>', url)
+
+    def identify_view(self, request, object_id):
+        movie = self.get_object(request, object_id)
+        if movie is None:
+            raise Http404("Película no encontrada")
+        if not self.has_change_permission(request, movie):
+            raise PermissionDenied
+
+        provider_name = request.POST.get("provider") or request.GET.get("provider") or getattr(
+            settings, "MOVIE_METADATA_PROVIDER", "tmdb"
+        )
+        query = (request.GET.get("q") or request.POST.get("q") or movie.title).strip()
+        candidates = []
+        provider_error = ""
+
+        try:
+            provider = get_movie_metadata_provider(provider_name)
+            if not provider.is_configured():
+                raise ProviderError(f"El proveedor {provider.name} no está configurado.")
+
+            if request.method == "POST" and request.POST.get("external_id"):
+                replace = request.POST.get("replace") == "1"
+                result = identify_movie_metadata(
+                    movie,
+                    request.POST["external_id"],
+                    replace=replace,
+                    provider=provider,
+                )
+                mode = "reemplazados" if replace else "completados"
+                self.message_user(
+                    request,
+                    f"Película identificada como {result.provider}:{result.external_id}; metadatos {mode}.",
+                    messages.SUCCESS,
+                )
+                return redirect(reverse("admin:core_movie_change", args=[movie.pk]))
+
+            search_title, year = split_title_year(query)
+            candidates = provider.search(search_title, year=year)
+        except ProviderError as exc:
+            provider = None
+            provider_error = str(exc)
+
+        identity = movie.external_ids.first()
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "original": movie,
+            "movie": movie,
+            "title": f"Identificar · {movie.title}",
+            "query": query,
+            "candidates": candidates,
+            "provider_name": provider.name if provider else provider_name,
+            "provider_error": provider_error,
+            "current_identity": identity,
+            "media": self.media,
+        }
+        return TemplateResponse(request, "admin/core/movie/identify.html", context)
 
     def save_model(self, request, obj, form, change):
         creating = obj.pk is None
