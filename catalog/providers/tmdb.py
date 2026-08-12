@@ -5,6 +5,8 @@ from urllib.request import Request, urlopen
 
 from django.conf import settings
 
+from catalog.runtime_config import tmdb_api_token
+
 from .base import CastCredit, MovieMetadata, MovieSearchResult, ProviderError
 
 
@@ -15,12 +17,12 @@ class TmdbMovieMetadataProvider:
     api_base = "https://api.themoviedb.org"
 
     def is_configured(self) -> bool:
-        return bool(getattr(settings, "TMDB_API_TOKEN", "").strip())
+        return bool(tmdb_api_token())
 
     def _get(self, path: str, **params):
-        token = getattr(settings, "TMDB_API_TOKEN", "").strip()
+        token = tmdb_api_token()
         if not token:
-            raise ProviderError("TMDB_API_TOKEN no está configurado.")
+            raise ProviderError("TMDB no está configurado. Añade un API Read Access Token en Configuración del cine o en TMDB_API_TOKEN.")
 
         query = urlencode({key: value for key, value in params.items() if value not in (None, "")})
         url = f"{self.api_base}{path}"
