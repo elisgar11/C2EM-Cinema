@@ -11,7 +11,7 @@ from django.utils.html import format_html
 
 from catalog.creation import create_movie_from_provider
 from catalog.providers import ProviderError
-from catalog.runtime_config import tmdb_token_source
+from catalog.runtime_config import metadata_provider_preference, tmdb_token_source
 from catalog.services import (
     get_movie_metadata_provider,
     identify_movie_metadata,
@@ -122,9 +122,7 @@ class MovieAdmin(admin.ModelAdmin):
         if not self.has_add_permission(request):
             raise PermissionDenied
 
-        provider_name = request.POST.get("provider") or request.GET.get("provider") or getattr(
-            settings, "MOVIE_METADATA_PROVIDER", "tmdb"
-        )
+        provider_name = request.POST.get("provider") or request.GET.get("provider") or metadata_provider_preference()
         query = (request.GET.get("q") or request.POST.get("q") or "").strip()
         candidates = []
         provider_error = ""
@@ -240,9 +238,7 @@ class MovieAdmin(admin.ModelAdmin):
         if not self.has_change_permission(request, movie):
             raise PermissionDenied
 
-        provider_name = request.POST.get("provider") or request.GET.get("provider") or getattr(
-            settings, "MOVIE_METADATA_PROVIDER", "tmdb"
-        )
+        provider_name = request.POST.get("provider") or request.GET.get("provider") or metadata_provider_preference()
         query = (request.GET.get("q") or request.POST.get("q") or movie.title).strip()
         candidates = []
         provider_error = ""
