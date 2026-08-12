@@ -1,5 +1,5 @@
 {% extends "core/base.html" %}
-{% load cinema_tags %}
+{% load cinema_tags dynamic_listings %}
 
 {% block title %}{{ movie.title }} · {{ site_settings.cinema_name }}{% endblock %}
 
@@ -10,21 +10,51 @@
             {% if movie.poster %}<img src="{{ movie.poster.url }}" alt="Póster de {{ movie.title }}">{% else %}<span class="poster-placeholder">{{ movie.title|slice:":1" }}</span>{% endif %}
         </div>
         <div class="cinema-feature-copy">
-            <p class="cinema-kicker">En cartelera</p>
+            <p class="cinema-kicker">Antes de entrar a sala</p>
             <h1>{{ movie.title }}</h1>
             <p class="cinema-feature-meta">
                 <span>{{ movie.duration_minutes }} min</span>
                 {% if movie.age_rating %}<span class="cinema-meta-dot">•</span><span>{{ movie.age_rating }}</span>{% endif %}
                 {% if screening_days %}<span class="cinema-meta-dot">•</span><span>Sesiones disponibles</span>{% endif %}
             </p>
-            {% if movie.description %}<p class="cinema-feature-description">{{ movie.description }}</p>{% endif %}
+            {% if movie.description %}<p class="cinema-feature-description">{{ movie.description|truncatewords:28 }}</p>{% endif %}
             <div class="cinema-feature-actions">
                 {% if screening_days %}<a class="cinema-cta" href="#sesiones">Elegir sesión</a>{% endif %}
+                <a class="cinema-cta secondary" href="#informacion">Sinopsis y reparto</a>
                 {% if movie.trailer_url %}<a class="cinema-cta secondary" href="{{ movie.trailer_url }}" target="_blank" rel="noopener">Ver tráiler ↗</a>{% endif %}
             </div>
         </div>
     </div>
 </section>
+
+{% with cast=movie.cast_members.all %}
+<section class="shell section narrow cinema-movie-context" id="informacion">
+    <article class="cinema-synopsis-panel">
+        <p class="eyebrow">La película</p>
+        <h2>Sinopsis</h2>
+        {% if movie.description %}
+            <p>{{ movie.description }}</p>
+        {% else %}
+            <p class="cinema-muted-copy">Todavía no se ha cargado una sinopsis para esta película.</p>
+        {% endif %}
+    </article>
+
+    {% if cast %}
+        <aside class="cinema-cast-panel">
+            <p class="eyebrow">En pantalla</p>
+            <h2>Reparto</h2>
+            <div class="cinema-cast-list">
+                {% for member in cast|slice:":12" %}
+                    <div class="cinema-cast-member">
+                        <strong>{{ member.name }}</strong>
+                        {% if member.character %}<span>{{ member.character }}</span>{% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </aside>
+    {% endif %}
+</section>
+{% endwith %}
 
 <section class="shell section narrow" id="sesiones">
     <div class="section-heading">
@@ -32,19 +62,27 @@
         <span class="cinema-section-note">Después eliges butacas y extras</span>
     </div>
     {% if screening_days %}
-        <div class="screening-days">
+        <div class="screening-days cinema-detail-screenings">
             {% for day, screenings in screening_days %}
+                {% with kind=day|relative_day_kind %}
                 <div class="screening-day">
-                    <h3>{{ day|date:"l j \d\e F" }}</h3>
+                    <div class="cinema-detail-day-heading">
+                        <span class="cinema-day-badge cinema-day-badge-{{ kind }}">
+                            {% if kind == "today" %}Hoy{% elif kind == "tomorrow" %}Mañana{% else %}Próximamente{% endif %}
+                        </span>
+                        <h3>{{ day|date:"l j \d\e F" }}</h3>
+                    </div>
                     <div class="screening-buttons">
                         {% for screening in screenings %}
-                            <a class="screening-button" href="{% url 'core:screening_detail' screening.pk %}">
+                            <a class="screening-button{% if forloop.first and forloop.parentloop.first %} cinema-screening-next{% endif %}" href="{% url 'core:screening_detail' screening.pk %}">
+                                {% if forloop.first and forloop.parentloop.first %}<small class="cinema-next-flag">Próxima</small>{% endif %}
                                 <strong>{{ screening.start_at|date:"H:i" }}</strong>
                                 <span>{{ screening.room.name }} · {{ screening.base_price }}{{ site_settings.currency_symbol }}</span>
                             </a>
                         {% endfor %}
                     </div>
                 </div>
+                {% endwith %}
             {% endfor %}
         </div>
     {% else %}
