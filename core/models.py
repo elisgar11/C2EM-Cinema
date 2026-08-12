@@ -16,6 +16,15 @@ def generate_booking_code():
 
 
 class SiteSettings(models.Model):
+    METADATA_AUTO = "auto"
+    METADATA_TMDB = "tmdb"
+    METADATA_WIKIDATA = "wikidata"
+    METADATA_PROVIDER_CHOICES = [
+        (METADATA_AUTO, "Automático (TMDB si hay token; Wikidata como fallback)"),
+        (METADATA_TMDB, "TMDB"),
+        (METADATA_WIKIDATA, "Wikidata"),
+    ]
+
     cinema_name = models.CharField("nombre del cine", max_length=120, default="Mi cine")
     logo = models.ImageField("logo", upload_to="branding/", blank=True)
     tagline = models.CharField("eslogan", max_length=200, blank=True)
@@ -23,6 +32,13 @@ class SiteSettings(models.Model):
     primary_color = models.CharField("color principal", max_length=20, default="#e50914")
     ticket_footer = models.TextField("pie de entrada", blank=True)
     home_message = models.TextField("mensaje de portada", blank=True)
+    metadata_provider = models.CharField(
+        "proveedor de metadatos",
+        max_length=20,
+        choices=METADATA_PROVIDER_CHOICES,
+        default=METADATA_AUTO,
+    )
+    tmdb_api_token = models.TextField("token TMDB", blank=True, editable=False)
 
     class Meta:
         verbose_name = "configuración del cine"
