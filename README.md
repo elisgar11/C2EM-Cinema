@@ -7,6 +7,8 @@ Aplicación web autohospedada para usar una sala de cine personal como un peque�
 MVP funcional implementado:
 
 - Cartelera y detalle de películas.
+- Sinopsis y reparto por película.
+- Metadatos externos opcionales con identificación persistente del proveedor.
 - Varias salas y mapa de butacas configurable.
 - Sesiones con precio y horario.
 - Reserva visual de butacas.
@@ -44,6 +46,43 @@ docker compose exec web python manage.py createsuperuser
 ```
 
 Después abrir `http://localhost:8000/admin/`.
+
+## Metadatos de películas
+
+El catálogo usa una capa de proveedores desacoplada. El proveedor inicial es TMDB.
+
+Al crear una película desde Django Admin, si `MOVIE_METADATA_AUTO_FETCH=true` y existe `TMDB_API_TOKEN`, el sistema:
+
+1. busca la película por título;
+2. si el título termina en un año entre paréntesis, por ejemplo `Dune (2021)`, usa ese año como pista de búsqueda;
+3. guarda el ID de TMDB asociado a la película;
+4. obtiene el detalle usando ese ID;
+5. completa la sinopsis y el reparto si todavía están vacíos;
+6. completa el tráiler si está disponible;
+7. en futuros refrescos usa el ID persistido en vez de volver a identificar por nombre.
+
+Las ediciones manuales no se pisan por defecto. En la lista de películas del admin hay dos acciones:
+
+- `Completar metadatos vacíos desde el proveedor`: conserva los campos y el reparto que ya existan.
+- `Refrescar y reemplazar metadatos desde el proveedor`: vuelve a aplicar sinopsis, duración, tráiler y reparto del proveedor.
+
+Si TMDB no devuelve sinopsis en `es-ES`, el sistema intenta `en-US` como fallback. El número de intérpretes importados es configurable.
+
+Para activarlo, añade a `.env` un API Read Access Token de TMDB:
+
+```env
+MOVIE_METADATA_PROVIDER=tmdb
+MOVIE_METADATA_AUTO_FETCH=true
+TMDB_API_TOKEN=replace-with-your-tmdb-read-access-token
+TMDB_LANGUAGE=es-ES
+TMDB_FALLBACK_LANGUAGE=en-US
+TMDB_TIMEOUT_SECONDS=8
+TMDB_MAX_CAST_MEMBERS=12
+```
+
+Si el proveedor no está configurado o no responde, la película se guarda igualmente y el admin muestra un aviso. No se guarda ningún token en la base de datos ni en el repositorio.
+
+La identidad externa se mantiene separada del modelo de película para poder incorporar proveedores adicionales más adelante sin cambiar la lógica pública del cine.
 
 ## Cargar una demo
 
@@ -142,7 +181,7 @@ Para un backup básico, copia ambos.
 
 ## Configuración
 
-Variables disponibles en `.env`:
+Variables principales disponibles en `.env`:
 
 ```env
 SECRET_KEY=replace-with-a-long-random-value
@@ -150,6 +189,14 @@ DEBUG=false
 ALLOWED_HOSTS=localhost,127.0.0.1
 TIME_ZONE=Europe/Madrid
 CSRF_TRUSTED_ORIGINS=
+
+MOVIE_METADATA_PROVIDER=tmdb
+MOVIE_METADATA_AUTO_FETCH=true
+TMDB_API_TOKEN=
+TMDB_LANGUAGE=es-ES
+TMDB_FALLBACK_LANGUAGE=en-US
+TMDB_TIMEOUT_SECONDS=8
+TMDB_MAX_CAST_MEMBERS=12
 ```
 
 Para acceder desde otros equipos de la red, añade el nombre/IP del servidor a `ALLOWED_HOSTS`. Si lo publicas detrás de HTTPS con un proxy y un dominio propio, añade el origen completo (por ejemplo, `https://cine.example.com`) a `CSRF_TRUSTED_ORIGINS`.
@@ -170,7 +217,7 @@ python manage.py runserver
 
 ## Estructura
 
-Se mantiene deliberadamente una única app Django (`core`) para evitar arquitectura innecesaria en un proyecto privado de este tamaño. La lógica de confirmación de reservas está aislada en `core/services.py` y el resto usa Django Admin, ORM, sesiones y templates estándar.
+`core` mantiene reservas, sesiones, butacas, productos, entradas, anuncios y las vistas públicas. `catalog` mantiene reparto, identidad de proveedores y sincronización de metadatos. La lógica de confirmación de reservas continúa aislada en `core/services.py` y la integración externa de películas en `catalog/services.py` y `catalog/providers/`.
 
 ## Decisiones del MVP
 
@@ -179,7 +226,7 @@ Se mantiene deliberadamente una única app Django (`core`) para evitar arquitect
 - Sin bloqueos temporales de butacas.
 - Sin WebSockets.
 - Sin SPA/React/Vue.
-- Sin servicios externos para metadatos de películas.
+- Los metadatos externos son opcionales y nunca deben impedir guardar una película manualmente.
 - SQLite como base por defecto y un worker Gunicorn para reducir contención de escritura.
 
 La disponibilidad se vuelve a comprobar en el servidor al confirmar y una restricción parcial en la base de datos impide dos ocupaciones activas de la misma butaca para la misma sesión.
