@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import staff_views, views
 
 app_name = "core"
 
@@ -18,4 +18,6 @@ urlpatterns = [
     path("ticket/<uuid:token>/check-in/", views.ticket_check_in, name="ticket_check_in"),
     path("ticket/<uuid:token>/qr.svg", views.ticket_qr, name="ticket_qr"),
     path("staff/scanner/", views.ticket_scanner, name="ticket_scanner"),
+    path("staff/screenings/", staff_views.screening_dashboard_list, name="staff_screenings"),
+    path("staff/screenings/<int:pk>/", staff_views.screening_dashboard, name="screening_dashboard"),
 ]
