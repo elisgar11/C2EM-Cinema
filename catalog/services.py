@@ -31,7 +31,7 @@ def get_movie_metadata_provider(name: str | None = None) -> MovieMetadataProvide
     return provider_cls()
 
 
-def _split_title_year(title: str) -> tuple[str, int | None]:
+def split_title_year(title: str) -> tuple[str, int | None]:
     match = re.match(r"^(?P<title>.+?)\s*\((?P<year>\d{4})\)\s*$", title.strip())
     if not match:
         return title.strip(), None
@@ -46,57 +46,33 @@ def _choose_search_result(title: str, results):
     if not results:
         return None
     normalized = _normalize_title(title)
-    for result in results:
-        if _normalize_title(result.title) == normalized:
-            return result
-    return results[0]
+    exact = [result for result in results if _normalize_title(result.title) == normalized]
+    if len(exact) == 1:
+        return exact[0]
+    if len(results) == 1:
+        return results[0]
+    return None
 
 
-def sync_movie_metadata(movie, *, replace: bool = False, provider: MovieMetadataProvider | None = None) -> MetadataSyncResult:
-    """Synchronize a movie from a remote provider without overwriting manual edits by default."""
-
-    provider = provider or get_movie_metadata_provider()
-    if not provider.is_configured():
-        raise ProviderError(f"El proveedor {provider.name} no está configurado.")
-
-    identity = MovieExternalId.objects.filter(movie=movie, provider=provider.name).first()
-    used_existing_identity = identity is not None
-
-    if identity is None:
-        query_title, year = _split_title_year(movie.title)
-        candidate = _choose_search_result(query_title, provider.search(query_title, year=year))
-        if candidate is None:
-            raise ProviderError(f"No se encontraron metadatos para «{movie.title}».")
-        external_id = candidate.external_id
-    else:
-        external_id = identity.external_id
-
-    metadata = provider.fetch(external_id)
+def _apply_movie_metadata(movie, provider, metadata, *, replace: bool, used_existing_identity: bool):
     fields_updated = []
-
     try:
         with transaction.atomic():
             identity, _ = MovieExternalId.objects.update_or_create(
                 movie=movie,
                 provider=provider.name,
-                defaults={
-                    "external_id": metadata.external_id,
-                    "last_synced_at": timezone.now(),
-                },
+                defaults={"external_id": metadata.external_id, "last_synced_at": timezone.now()},
             )
 
             if metadata.overview and (replace or not movie.description.strip()):
                 movie.description = metadata.overview
                 fields_updated.append("description")
-
             if metadata.runtime_minutes and (replace or not movie.duration_minutes):
                 movie.duration_minutes = metadata.runtime_minutes
                 fields_updated.append("duration_minutes")
-
             if metadata.trailer_url and (replace or not movie.trailer_url.strip()):
                 movie.trailer_url = metadata.trailer_url
                 fields_updated.append("trailer_url")
-
             if fields_updated:
                 movie.save(update_fields=[*fields_updated, "updated_at"])
 
@@ -106,15 +82,7 @@ def sync_movie_metadata(movie, *, replace: bool = False, provider: MovieMetadata
                 if replace:
                     movie.cast_members.all().delete()
                 CastMember.objects.bulk_create(
-                    [
-                        CastMember(
-                            movie=movie,
-                            name=credit.name,
-                            character=credit.character,
-                            sort_order=credit.order,
-                        )
-                        for credit in metadata.cast
-                    ],
+                    [CastMember(movie=movie, name=c.name, character=c.character, sort_order=c.order) for c in metadata.cast],
                     ignore_conflicts=True,
                 )
     except IntegrityError as exc:
@@ -127,5 +95,47 @@ def sync_movie_metadata(movie, *, replace: bool = False, provider: MovieMetadata
         external_id=identity.external_id,
         fields_updated=tuple(fields_updated),
         cast_updated=cast_updated,
+        used_existing_identity=used_existing_identity,
+    )
+
+
+def identify_movie_metadata(movie, external_id: str, *, replace: bool = False, provider: MovieMetadataProvider | None = None):
+    """Fix a provider identity chosen by a human and fetch metadata using that stable ID."""
+    provider = provider or get_movie_metadata_provider()
+    if not provider.is_configured():
+        raise ProviderError(f"El proveedor {provider.name} no está configurado.")
+    existing = MovieExternalId.objects.filter(movie=movie, provider=provider.name).exists()
+    metadata = provider.fetch(str(external_id).strip())
+    return _apply_movie_metadata(movie, provider, metadata, replace=replace, used_existing_identity=existing)
+
+
+def sync_movie_metadata(movie, *, replace: bool = False, provider: MovieMetadataProvider | None = None) -> MetadataSyncResult:
+    """Synchronize from a stable provider ID; title matching is only used for unambiguous first identification."""
+    provider = provider or get_movie_metadata_provider()
+    if not provider.is_configured():
+        raise ProviderError(f"El proveedor {provider.name} no está configurado.")
+
+    identity = MovieExternalId.objects.filter(movie=movie, provider=provider.name).first()
+    used_existing_identity = identity is not None
+    if identity is None:
+        query_title, year = split_title_year(movie.title)
+        results = provider.search(query_title, year=year)
+        candidate = _choose_search_result(query_title, results)
+        if candidate is None:
+            if results:
+                raise ProviderError(
+                    f"Hay varias coincidencias posibles para «{movie.title}». Usa la pantalla Identificar del admin."
+                )
+            raise ProviderError(f"No se encontraron metadatos para «{movie.title}».")
+        external_id = candidate.external_id
+    else:
+        external_id = identity.external_id
+
+    metadata = provider.fetch(external_id)
+    return _apply_movie_metadata(
+        movie,
+        provider,
+        metadata,
+        replace=replace,
         used_existing_identity=used_existing_identity,
     )
