@@ -11,8 +11,16 @@
 <body class="preshow-body" style="--primary: {{ site_settings.primary_color|default:'#e50914' }}" data-start="{{ screening.start_at|date:'c' }}">
     <main class="preshow" aria-live="polite">
         {% for ad in ads %}
-            <section class="preshow-slide{% if forloop.first %} active{% endif %}" data-slide>
-                {% if ad.media %}<img class="preshow-media" src="{{ ad.media.url }}" alt="">{% endif %}
+            <section class="preshow-slide{% if forloop.first %} active{% endif %}" data-slide data-duration="{{ ad.preshow_duration_seconds }}">
+                {% if ad.media %}
+                    {% if ad.media_is_video %}
+                        <video class="preshow-media" muted playsinline preload="metadata" data-video>
+                            <source src="{{ ad.media.url }}">
+                        </video>
+                    {% else %}
+                        <img class="preshow-media" src="{{ ad.media.url }}" alt="">
+                    {% endif %}
+                {% endif %}
                 <div class="preshow-copy">
                     <p class="eyebrow">Publicidad</p>
                     <h1>{{ ad.headline }}</h1>
@@ -42,18 +50,28 @@
         (() => {
             const slides = Array.from(document.querySelectorAll("[data-slide]"));
             const progress = document.getElementById("progress");
-            const duration = 8000;
             let index = Math.max(0, slides.findIndex((slide) => slide.classList.contains("active")));
             let timer;
 
             function showSlide(nextIndex) {
                 clearTimeout(timer);
                 index = Math.min(Math.max(nextIndex, 0), slides.length - 1);
-                slides.forEach((slide, slideIndex) => slide.classList.toggle("active", slideIndex === index));
+                slides.forEach((slide, slideIndex) => {
+                    const active = slideIndex === index;
+                    slide.classList.toggle("active", active);
+                    const video = slide.querySelector("[data-video]");
+                    if (video) {
+                        video.pause();
+                        video.currentTime = 0;
+                        if (active) video.play().catch(() => {});
+                    }
+                });
+
                 progress.style.transitionDuration = "0ms";
                 progress.style.width = "0";
                 requestAnimationFrame(() => requestAnimationFrame(() => {
                     if (index < slides.length - 1) {
+                        const duration = Number(slides[index].dataset.duration || 8) * 1000;
                         progress.style.transitionDuration = duration + "ms";
                         progress.style.width = "100%";
                         timer = setTimeout(() => showSlide(index + 1), duration);
