@@ -1,7 +1,13 @@
+import mimetypes
 import re
 from dataclasses import dataclass
+from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
@@ -16,11 +22,12 @@ class MetadataSyncResult:
     fields_updated: tuple[str, ...]
     cast_updated: bool
     used_existing_identity: bool
+    artwork_updated: tuple[str, ...] = ()
+    artwork_errors: tuple[str, ...] = ()
 
 
-PROVIDERS = {
-    "tmdb": TmdbMovieMetadataProvider,
-}
+PROVIDERS = {"tmdb": TmdbMovieMetadataProvider}
+_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 def get_movie_metadata_provider(name: str | None = None) -> MovieMetadataProvider:
@@ -52,6 +59,55 @@ def _choose_search_result(title: str, results):
     if len(results) == 1:
         return results[0]
     return None
+
+
+def _download_remote_image(url: str) -> tuple[bytes, str]:
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise ProviderError("La imagen remota debe usar HTTPS.")
+
+    request = Request(url, headers={"Accept": "image/*", "User-Agent": "C2EM-Cinema/1.0"})
+    timeout = float(getattr(settings, "MOVIE_METADATA_IMAGE_TIMEOUT_SECONDS", 8))
+    max_bytes = int(getattr(settings, "MOVIE_METADATA_IMAGE_MAX_BYTES", 15 * 1024 * 1024))
+
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            final_url = response.geturl()
+            if urlparse(final_url).scheme != "https":
+                raise ProviderError("La descarga de imagen fue redirigida fuera de HTTPS.")
+            content_type = response.headers.get_content_type().lower()
+            if content_type not in _ALLOWED_IMAGE_TYPES:
+                raise ProviderError(f"Formato de imagen remoto no permitido: {content_type}.")
+            data = response.read(max_bytes + 1)
+    except HTTPError as exc:
+        raise ProviderError(f"La imagen remota respondió con HTTP {exc.code}.") from exc
+    except URLError as exc:
+        raise ProviderError(f"No se pudo descargar la imagen remota: {exc.reason}") from exc
+
+    if len(data) > max_bytes:
+        raise ProviderError("La imagen remota supera el tamaño máximo permitido.")
+
+    extension = mimetypes.guess_extension(content_type) or Path(parsed.path).suffix.lower() or ".jpg"
+    if extension == ".jpe":
+        extension = ".jpg"
+    return data, extension
+
+
+def _save_movie_artwork(movie, field_name: str, url: str, *, replace: bool, provider_name: str, external_id: str) -> bool:
+    field = getattr(movie, field_name)
+    if not url or (field and not replace):
+        return False
+
+    data, extension = _download_remote_image(url)
+    old_name = field.name if field else ""
+    filename = f"{movie.slug}-{provider_name}-{external_id}-{field_name}{extension}"
+    field.save(filename, ContentFile(data), save=False)
+    new_name = field.name
+    movie.save(update_fields=[field_name, "updated_at"])
+
+    if old_name and old_name != new_name:
+        field.storage.delete(old_name)
+    return True
 
 
 def _apply_movie_metadata(movie, provider, metadata, *, replace: bool, used_existing_identity: bool):
@@ -86,9 +142,24 @@ def _apply_movie_metadata(movie, provider, metadata, *, replace: bool, used_exis
                     ignore_conflicts=True,
                 )
     except IntegrityError as exc:
-        raise ProviderError(
-            f"El identificador {provider.name}:{metadata.external_id} ya está asociado a otra película."
-        ) from exc
+        raise ProviderError(f"El identificador {provider.name}:{metadata.external_id} ya está asociado a otra película.") from exc
+
+    artwork_updated = []
+    artwork_errors = []
+    if getattr(settings, "MOVIE_METADATA_FETCH_IMAGES", True):
+        for field_name, url in (("poster", metadata.poster_url), ("backdrop", metadata.backdrop_url)):
+            try:
+                if _save_movie_artwork(
+                    movie,
+                    field_name,
+                    url,
+                    replace=replace,
+                    provider_name=provider.name,
+                    external_id=metadata.external_id,
+                ):
+                    artwork_updated.append(field_name)
+            except ProviderError as exc:
+                artwork_errors.append(f"{field_name}: {exc}")
 
     return MetadataSyncResult(
         provider=provider.name,
@@ -96,11 +167,12 @@ def _apply_movie_metadata(movie, provider, metadata, *, replace: bool, used_exis
         fields_updated=tuple(fields_updated),
         cast_updated=cast_updated,
         used_existing_identity=used_existing_identity,
+        artwork_updated=tuple(artwork_updated),
+        artwork_errors=tuple(artwork_errors),
     )
 
 
 def identify_movie_metadata(movie, external_id: str, *, replace: bool = False, provider: MovieMetadataProvider | None = None):
-    """Fix a provider identity chosen by a human and fetch metadata using that stable ID."""
     provider = provider or get_movie_metadata_provider()
     if not provider.is_configured():
         raise ProviderError(f"El proveedor {provider.name} no está configurado.")
@@ -110,7 +182,6 @@ def identify_movie_metadata(movie, external_id: str, *, replace: bool = False, p
 
 
 def sync_movie_metadata(movie, *, replace: bool = False, provider: MovieMetadataProvider | None = None) -> MetadataSyncResult:
-    """Synchronize from a stable provider ID; title matching is only used for unambiguous first identification."""
     provider = provider or get_movie_metadata_provider()
     if not provider.is_configured():
         raise ProviderError(f"El proveedor {provider.name} no está configurado.")
@@ -123,19 +194,11 @@ def sync_movie_metadata(movie, *, replace: bool = False, provider: MovieMetadata
         candidate = _choose_search_result(query_title, results)
         if candidate is None:
             if results:
-                raise ProviderError(
-                    f"Hay varias coincidencias posibles para «{movie.title}». Usa la pantalla Identificar del admin."
-                )
+                raise ProviderError(f"Hay varias coincidencias posibles para «{movie.title}». Usa la pantalla Identificar del admin.")
             raise ProviderError(f"No se encontraron metadatos para «{movie.title}».")
         external_id = candidate.external_id
     else:
         external_id = identity.external_id
 
     metadata = provider.fetch(external_id)
-    return _apply_movie_metadata(
-        movie,
-        provider,
-        metadata,
-        replace=replace,
-        used_existing_identity=used_existing_identity,
-    )
+    return _apply_movie_metadata(movie, provider, metadata, replace=replace, used_existing_identity=used_existing_identity)
