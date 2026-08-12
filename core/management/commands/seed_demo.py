@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from catalog.models import CastMember
 from core.models import Advertisement, Movie, Pack, PackItem, Product, Room, Screening, Seat, SiteSettings
 
 
@@ -56,17 +57,66 @@ class Command(BaseCommand):
         PackItem.objects.get_or_create(pack=marathon, product=products["Refresco"], defaults={"quantity": 2})
         PackItem.objects.get_or_create(pack=marathon, product=products["Nachos"], defaults={"quantity": 1})
 
+        movie_data = [
+            {
+                "title": "Alien",
+                "slug": "alien",
+                "duration": 117,
+                "rating": "+16",
+                "description": "La tripulación de una nave comercial responde a una señal desconocida durante su viaje de regreso. Lo que encuentran a bordo transforma una misión rutinaria en una lucha claustrofóbica por sobrevivir.",
+                "cast": [
+                    ("Sigourney Weaver", "Ellen Ripley"),
+                    ("Tom Skerritt", "Dallas"),
+                    ("Veronica Cartwright", "Lambert"),
+                    ("John Hurt", "Kane"),
+                    ("Ian Holm", "Ash"),
+                ],
+            },
+            {
+                "title": "Dune",
+                "slug": "dune",
+                "duration": 155,
+                "rating": "+12",
+                "description": "Paul Atreides viaja con su familia al planeta Arrakis, fuente del recurso más valioso del universo. Entre intrigas políticas, profecías y un territorio hostil, deberá encontrar su lugar en un conflicto mucho mayor que él.",
+                "cast": [
+                    ("Timothée Chalamet", "Paul Atreides"),
+                    ("Rebecca Ferguson", "Lady Jessica"),
+                    ("Oscar Isaac", "Duke Leto Atreides"),
+                    ("Zendaya", "Chani"),
+                    ("Javier Bardem", "Stilgar"),
+                ],
+            },
+            {
+                "title": "Shrek",
+                "slug": "shrek",
+                "duration": 90,
+                "rating": "TP",
+                "description": "Un ogro que disfruta de la tranquilidad de su pantano ve su hogar invadido por personajes de cuento. Para recuperarlo acepta rescatar a una princesa y acaba emprendiendo una aventura que desmonta varios finales felices.",
+                "cast": [
+                    ("Mike Myers", "Shrek"),
+                    ("Eddie Murphy", "Donkey"),
+                    ("Cameron Diaz", "Princess Fiona"),
+                    ("John Lithgow", "Lord Farquaad"),
+                ],
+            },
+        ]
+
         movies = []
-        for title, slug, duration, rating, description in [
-            ("Alien", "alien", 117, "+16", "Terror y ciencia ficción para una noche oscura."),
-            ("Dune", "dune", 155, "+12", "Una gran aventura de ciencia ficción."),
-            ("Shrek", "shrek", 90, "TP", "Una sesión ligera para todos."),
-        ]:
-            movie, _ = Movie.objects.get_or_create(
-                slug=slug,
-                defaults={"title": title, "duration_minutes": duration, "age_rating": rating, "description": description},
-            )
+        for item in movie_data:
+            movie, _ = Movie.objects.get_or_create(slug=item["slug"], defaults={"title": item["title"], "duration_minutes": item["duration"]})
+            movie.title = item["title"]
+            movie.duration_minutes = item["duration"]
+            movie.age_rating = item["rating"]
+            movie.description = item["description"]
+            movie.save()
             movies.append(movie)
+
+            for order, (name, character) in enumerate(item["cast"], start=1):
+                CastMember.objects.update_or_create(
+                    movie=movie,
+                    name=name,
+                    defaults={"character": character, "sort_order": order},
+                )
 
         local_now = timezone.localtime()
         first_day = local_now.date() + timedelta(days=1)
