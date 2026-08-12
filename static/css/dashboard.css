@@ -1,0 +1,61 @@
+.staff-dashboard { padding-top: 56px; }
+.dashboard-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 30px; }
+.dashboard-heading h1 { margin: 0; font-size: clamp(2.8rem, 7vw, 5rem); line-height: .95; letter-spacing: -.045em; }
+.dashboard-heading .lead { margin-bottom: 0; }
+.dashboard-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+
+.session-dashboard-list { display: grid; gap: 12px; }
+.session-dashboard-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 24px; border: 1px solid #2c2c34; border-radius: 18px; background: #151519; text-decoration: none; }
+.session-dashboard-card:hover { border-color: var(--primary); }
+.session-dashboard-card h2 { margin: 5px 0; font-size: 1.45rem; }
+.session-dashboard-card p { margin: 0; color: #92929c; }
+.session-dashboard-date { color: var(--primary); font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.session-dashboard-stats { display: flex; gap: 10px; }
+.session-dashboard-stats span { min-width: 94px; padding: 12px 14px; border-radius: 12px; background: #202026; color: #a8a8b1; text-align: center; font-size: .78rem; }
+.session-dashboard-stats strong { display: block; margin-bottom: 3px; color: #fff; font-size: 1.25rem; }
+
+.dashboard-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.dashboard-kpi { padding: 20px; border: 1px solid #2c2c34; border-radius: 18px; background: #151519; }
+.dashboard-kpi span, .dashboard-kpi small { display: block; color: #92929c; }
+.dashboard-kpi span { margin-bottom: 13px; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.dashboard-kpi strong { display: block; margin-bottom: 5px; font-size: clamp(1.8rem, 4vw, 2.8rem); letter-spacing: -.04em; }
+.dashboard-kpi small { font-size: .78rem; }
+
+.dashboard-grid { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 18px; align-items: start; }
+.dashboard-panel { border: 1px solid #2c2c34; border-radius: 18px; background: #151519; overflow: hidden; }
+.dashboard-panel-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; padding: 22px 24px; border-bottom: 1px solid #292930; }
+.dashboard-panel-heading h2 { margin: 0; font-size: 1.65rem; }
+.dashboard-panel-heading > span { color: #92929c; font-size: .8rem; }
+.dashboard-table-wrap { overflow-x: auto; }
+.dashboard-table { width: 100%; border-collapse: collapse; min-width: 760px; }
+.dashboard-table th, .dashboard-table td { padding: 15px 18px; border-bottom: 1px solid #26262d; text-align: left; vertical-align: top; }
+.dashboard-table th { color: #81818b; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; }
+.dashboard-table td { color: #d4d4da; font-size: .86rem; }
+.dashboard-table td:first-child span { display: block; margin-top: 3px; color: #8f8f99; }
+.dashboard-table a { text-decoration: none; }
+.dashboard-table tbody tr:last-child td { border-bottom: 0; }
+.dashboard-status { display: inline-block; padding: 6px 9px; border-radius: 999px; background: #28282e; color: #aaaab3; font-size: .74rem; white-space: nowrap; }
+.dashboard-status.ok { background: #173822; color: #81e49e; }
+
+.dashboard-extras { padding-bottom: 20px; }
+.dashboard-extras h3 { margin: 22px 24px 10px; color: #bdbdc5; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
+.extras-totals { margin: 0 24px; }
+.extras-totals div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid #27272e; }
+.extras-totals div:last-child { border-bottom: 0; }
+.extras-totals span { color: #aaaab3; }
+.muted, .dashboard-empty { color: #85858f; }
+.dashboard-empty { padding: 26px; border: 1px dashed #303038; border-radius: 16px; text-align: center; }
+
+@media (max-width: 850px) {
+    .dashboard-heading { align-items: flex-start; flex-direction: column; }
+    .dashboard-actions { justify-content: flex-start; }
+    .dashboard-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+    .session-dashboard-card { align-items: flex-start; flex-direction: column; }
+    .session-dashboard-stats { width: 100%; }
+    .session-dashboard-stats span { flex: 1; }
+    .dashboard-kpis { grid-template-columns: 1fr; }
+}
