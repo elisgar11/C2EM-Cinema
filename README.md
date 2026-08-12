@@ -16,6 +16,7 @@ MVP funcional implementado:
 - Entrada digital con QR.
 - Búsqueda de entradas mediante código de reserva.
 - Check-in de entradas para administradores.
+- Escáner QR para staff con fallback manual.
 - Pre-show por sesión con anuncios y cuenta atrás.
 - Cancelación administrativa que libera las butacas.
 - Publicidad programable por ubicación.
@@ -72,7 +73,7 @@ El comando no duplica butacas ya existentes.
 6. Obtiene una entrada digital con QR.
 7. La reserva aparece en el admin.
 8. El amigo puede recuperar la entrada desde `Buscar entrada` usando su código `CINE-XXXXXX`.
-9. Un administrador puede abrir la entrada y pulsar `Registrar entrada` para hacer check-in.
+9. Un administrador puede validar la entrada desde el propio ticket o desde el escáner de staff.
 10. Si el administrador cancela la reserva, sus butacas vuelven a quedar disponibles.
 
 ## Check-in
@@ -87,6 +88,19 @@ El check-in:
 - no se permite en reservas canceladas.
 
 También puede realizarse en lote desde la lista de reservas de Django Admin.
+
+## Escáner de entradas
+
+Los usuarios staff ven el enlace `Escanear` en la navegación. La ruta es `/staff/scanner/`.
+
+El escáner acepta:
+
+- el QR generado por la aplicación;
+- la URL completa de una entrada;
+- el UUID de una entrada;
+- el código `CINE-XXXXXX`.
+
+Cuando el navegador dispone de `BarcodeDetector` y acceso a cámara, puede leer el QR directamente. El acceso a cámara normalmente requiere HTTPS o `localhost`; si no está disponible, el formulario manual sigue funcionando.
 
 ## Pre-show
 

@@ -1,0 +1,126 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Escáner de entradas · {{ site_settings.cinema_name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/scanner.css' %}">{% endblock %}
+
+{% block content %}
+<section class="shell section scanner-page">
+    <div class="scanner-heading">
+        <div>
+            <p class="eyebrow">Acceso staff</p>
+            <h1>Escáner de entradas</h1>
+            <p>Escanea el QR de una entrada o introduce manualmente su código.</p>
+        </div>
+    </div>
+
+    <div class="scanner-grid">
+        <article class="scanner-camera-card">
+            <div class="scanner-camera" id="camera-shell">
+                <video id="scanner-video" playsinline muted></video>
+                <div class="scanner-frame" aria-hidden="true"></div>
+                <p id="camera-status">Activa la cámara para leer códigos QR.</p>
+            </div>
+            <button class="button wide" id="start-camera" type="button">Activar cámara</button>
+        </article>
+
+        <article class="scanner-manual-card">
+            <h2>Código manual</h2>
+            <p>También acepta la URL completa de la entrada o su UUID.</p>
+            <form method="post" id="scanner-form" class="scanner-form">
+                {% csrf_token %}
+                <label for="scanner-value">QR o código</label>
+                <input id="scanner-value" name="value" placeholder="CINE-XXXXXX" autocomplete="off" required>
+                <button class="button" type="submit">Validar entrada</button>
+            </form>
+        </article>
+    </div>
+
+    {% if last_booking %}
+        <article class="scanner-result {% if last_booking.status == 'cancelled' %}danger{% elif last_booking.checked_in_at %}success{% endif %}">
+            <div>
+                <p class="eyebrow">Última lectura</p>
+                <h2>{{ last_booking.customer_name }}</h2>
+                <p>{{ last_booking.screening.movie.title }} · {{ last_booking.screening.start_at|date:"H:i" }} · {{ last_booking.screening.room.name }}</p>
+                <p>Butacas: {% for item in last_booking.seats.all %}{{ item.seat.label }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+            </div>
+            <div class="scanner-result-status">
+                {% if last_booking.status == 'cancelled' %}
+                    <strong>Cancelada</strong>
+                {% elif last_booking.checked_in_at %}
+                    <strong>Entrada validada</strong>
+                    <span>{{ last_booking.checked_in_at|date:"H:i:s" }}</span>
+                {% endif %}
+                <a class="text-link" href="{% url 'core:ticket' last_booking.ticket_token %}">Ver entrada</a>
+            </div>
+        </article>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (() => {
+        const startButton = document.getElementById("start-camera");
+        const video = document.getElementById("scanner-video");
+        const status = document.getElementById("camera-status");
+        const form = document.getElementById("scanner-form");
+        const input = document.getElementById("scanner-value");
+        let stream = null;
+        let stopped = false;
+        let submitting = false;
+
+        function stopCamera() {
+            stopped = true;
+            if (stream) stream.getTracks().forEach((track) => track.stop());
+            stream = null;
+        }
+
+        async function startCamera() {
+            if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
+                status.textContent = "Este navegador no permite escaneo QR directo. Usa el código manual.";
+                startButton.disabled = true;
+                return;
+            }
+
+            stopped = false;
+            startButton.disabled = true;
+            status.textContent = "Solicitando acceso a la cámara…";
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: "environment" } },
+                    audio: false,
+                });
+                video.srcObject = stream;
+                await video.play();
+                status.textContent = "Apunta al QR de la entrada.";
+                const detector = new BarcodeDetector({ formats: ["qr_code"] });
+
+                async function scan() {
+                    if (stopped || submitting) return;
+                    try {
+                        const codes = await detector.detect(video);
+                        if (codes.length && codes[0].rawValue) {
+                            submitting = true;
+                            input.value = codes[0].rawValue;
+                            stopCamera();
+                            form.submit();
+                            return;
+                        }
+                    } catch (error) {
+                        status.textContent = "No se ha podido leer la cámara. Puedes usar el código manual.";
+                    }
+                    setTimeout(scan, 250);
+                }
+                scan();
+            } catch (error) {
+                status.textContent = "No se pudo acceder a la cámara. Revisa el permiso o usa el código manual.";
+                startButton.disabled = false;
+            }
+        }
+
+        startButton.addEventListener("click", startCamera);
+        window.addEventListener("pagehide", stopCamera);
+    })();
+</script>
+{% endblock %}

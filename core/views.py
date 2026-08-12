@@ -1,4 +1,6 @@
 from collections import defaultdict
+from urllib.parse import urlparse
+from uuid import UUID
 
 import qrcode
 import qrcode.image.svg
@@ -194,6 +196,65 @@ def ticket_check_in(request, token):
     else:
         messages.info(request, f"La entrada {booking.code} ya estaba validada.")
     return redirect("core:ticket", token=booking.ticket_token)
+
+
+def booking_from_scan(value):
+    value = value.strip()
+    if not value:
+        return None
+
+    booking = Booking.objects.filter(code__iexact=value).first()
+    if booking:
+        return booking
+
+    path = urlparse(value).path
+    parts = [part for part in path.split("/") if part]
+    token = None
+    if "ticket" in parts:
+        index = parts.index("ticket")
+        if index + 1 < len(parts):
+            token = parts[index + 1]
+    elif len(parts) == 1:
+        token = parts[0]
+
+    try:
+        token = UUID(token)
+    except (TypeError, ValueError):
+        return None
+    return Booking.objects.filter(ticket_token=token).first()
+
+
+@require_http_methods(["GET", "POST"])
+@staff_member_required
+def ticket_scanner(request):
+    if request.method == "POST":
+        booking = booking_from_scan(request.POST.get("value", ""))
+        if not booking:
+            messages.error(request, "El QR o código no corresponde a ninguna entrada.")
+            return redirect("core:ticket_scanner")
+        if booking.status == Booking.CANCELLED:
+            messages.error(request, f"La reserva {booking.code} está cancelada.")
+        elif booking.check_in():
+            messages.success(request, f"Entrada {booking.code} validada correctamente.")
+        else:
+            messages.info(request, f"La entrada {booking.code} ya estaba validada.")
+        return redirect(f"{reverse('core:ticket_scanner')}?last={booking.ticket_token}")
+
+    last_booking = None
+    last_token = request.GET.get("last")
+    if last_token:
+        try:
+            last_token = UUID(last_token)
+        except ValueError:
+            pass
+        else:
+            last_booking = (
+                Booking.objects.filter(ticket_token=last_token)
+                .select_related("screening__movie", "screening__room")
+                .prefetch_related("seats__seat")
+                .first()
+            )
+    return render(request, "core/ticket_scanner.html", {"last_booking": last_booking})
 
 
 @require_GET
