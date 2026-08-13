@@ -6,8 +6,11 @@
 {% block content %}
 <section class="shell section narrow booking-step">
     <div class="backline"><a href="{{ screening.movie.get_absolute_url }}">← {{ screening.movie.title }}</a></div>
+    <div class="cinema-booking-progress" aria-label="Paso 1 de 3">
+        <span class="is-active"></span><span></span><span></span>
+    </div>
     <div class="section-heading split-heading">
-        <div><p class="eyebrow">Paso 1 de 3</p><h1>Elige tus butacas</h1></div>
+        <div><p class="eyebrow">Paso 1 de 3 · Butacas</p><h1>Elige dónde sentarte</h1></div>
         <div class="session-summary"><strong>{{ screening.start_at|date:"j M · H:i" }}</strong><span>{{ screening.room.name }}</span></div>
     </div>
 
@@ -49,7 +52,7 @@
 
         <div class="sticky-action">
             <div><strong id="selected-count">0 butacas</strong><span id="selected-total">0,00{{ site_settings.currency_symbol }}</span></div>
-            <button class="button" id="seat-submit" type="submit" disabled>Continuar</button>
+            <button class="button" id="seat-submit" type="submit" disabled>Continuar a extras</button>
         </div>
     </form>
 </section>
