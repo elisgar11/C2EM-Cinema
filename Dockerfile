@@ -17,6 +17,7 @@ COPY . .
 
 RUN mkdir -p /app/data /app/media /app/staticfiles /app/static/vendor/qr-scanner
 COPY --from=qr-assets /vendor/node_modules/qr-scanner/qr-scanner.umd.min.js /app/static/vendor/qr-scanner/qr-scanner.umd.min.js
+COPY --from=qr-assets /vendor/node_modules/qr-scanner/qr-scanner.umd.min.js.map /app/static/vendor/qr-scanner/qr-scanner.umd.min.js.map
 COPY --from=qr-assets /vendor/node_modules/qr-scanner/qr-scanner-worker.min.js /app/static/vendor/qr-scanner/qr-scanner-worker.min.js
 COPY --from=qr-assets /vendor/node_modules/qr-scanner/LICENSE /app/static/vendor/qr-scanner/LICENSE
 
