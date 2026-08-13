@@ -43,6 +43,19 @@
     overflow: hidden;
     border-radius: 14px;
     background: #08080a;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.scanner-camera[data-scanner-state="warning"] {
+    box-shadow: inset 0 0 0 1px rgba(240, 180, 52, .5);
+}
+
+.scanner-camera[data-scanner-state="danger"] {
+    box-shadow: inset 0 0 0 1px rgba(224, 82, 82, .58);
+}
+
+.scanner-camera[data-scanner-state="success"] {
+    box-shadow: inset 0 0 0 1px rgba(85, 190, 125, .5);
 }
 
 .scanner-camera video {
@@ -51,18 +64,30 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    opacity: 0;
+    transition: opacity 140ms ease;
+}
+
+.scanner-camera.is-active video {
+    opacity: 1;
 }
 
 .scanner-camera p {
     position: relative;
     z-index: 3;
-    max-width: 28ch;
+    max-width: 34ch;
     margin: 0;
     padding: 12px 14px;
     border-radius: 10px;
-    background: rgba(8, 8, 10, .78);
+    background: rgba(8, 8, 10, .82);
     color: #c6c6cd;
     text-align: center;
+    line-height: 1.45;
+}
+
+.scanner-camera.is-active p {
+    align-self: end;
+    margin-bottom: 14px;
 }
 
 .scanner-frame {
@@ -74,6 +99,51 @@
     border-radius: 18px;
     box-shadow: 0 0 0 999px rgba(0, 0, 0, .2);
     pointer-events: none;
+}
+
+.scanner-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.scanner-actions .button,
+.scanner-photo-button {
+    display: inline-flex;
+    box-sizing: border-box;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    cursor: pointer;
+    text-align: center;
+}
+
+.scanner-actions .button:disabled {
+    cursor: not-allowed;
+    opacity: .48;
+}
+
+.scanner-photo-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.scanner-flash-button {
+    grid-column: 1 / -1;
+}
+
+.scanner-help {
+    margin: 12px 2px 0;
+    color: #82828c;
+    font-size: .82rem;
+    line-height: 1.5;
 }
 
 .scanner-manual-card h2,
@@ -99,6 +169,7 @@
 
 .scanner-form input {
     width: 100%;
+    box-sizing: border-box;
     padding: 13px 14px;
     border: 1px solid #393941;
     border-radius: 10px;
@@ -159,12 +230,16 @@
 }
 
 @media (max-width: 760px) {
+    .scanner-page {
+        padding-top: 32px;
+    }
+
     .scanner-grid {
         grid-template-columns: 1fr;
     }
 
     .scanner-camera {
-        min-height: 300px;
+        min-height: min(68vh, 420px);
     }
 
     .scanner-result {
@@ -175,5 +250,22 @@
     .scanner-result-status {
         align-items: flex-start;
         text-align: left;
+    }
+}
+
+@media (max-width: 480px) {
+    .scanner-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .scanner-flash-button {
+        grid-column: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scanner-camera,
+    .scanner-camera video {
+        transition: none;
     }
 }
