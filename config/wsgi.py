@@ -8,7 +8,9 @@ _vercel_prepared = False
 
 def _prepare_vercel_runtime():
     global _vercel_prepared
-    if _vercel_prepared or not os.environ.get("VERCEL"):
+    if _vercel_prepared:
+        return
+    if not (os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV")):
         return
     from django.core.management import call_command
 

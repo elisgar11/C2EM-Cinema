@@ -3,7 +3,11 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-IS_VERCEL = os.environ.get("VERCEL", "").lower() in {"1", "true", "yes", "on"}
+IS_VERCEL = bool(
+    os.environ.get("VERCEL_ENV")
+    or os.environ.get("VERCEL")
+    or os.environ.get("VERCEL_URL")
+)
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me")
 DEBUG = os.environ.get("DEBUG", "true").lower() in {"1", "true", "yes", "on"}
