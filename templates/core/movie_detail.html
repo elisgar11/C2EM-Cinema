@@ -10,7 +10,7 @@
             {% if movie.poster %}<img src="{{ movie.poster.url }}" alt="Póster de {{ movie.title }}">{% else %}<span class="poster-placeholder">{{ movie.title|slice:":1" }}</span>{% endif %}
         </div>
         <div class="cinema-feature-copy">
-            <p class="cinema-kicker">Antes de entrar a sala</p>
+            <p class="cinema-kicker">En cartelera</p>
             <h1>{{ movie.title }}</h1>
             <p class="cinema-feature-meta">
                 <span>{{ movie.duration_minutes }} min</span>
@@ -18,6 +18,18 @@
                 {% if screening_days %}<span class="cinema-meta-dot">•</span><span>Sesiones disponibles</span>{% endif %}
             </p>
             {% if movie.description %}<p class="cinema-feature-description">{{ movie.description|truncatewords:28 }}</p>{% endif %}
+
+            {% if screening_days %}
+                {% with next_screening=screening_days.0.1.0 %}
+                    <div class="cinema-showtime-strip" aria-label="Próximo pase">
+                        <span class="cinema-showtime-label">Próximo pase</span>
+                        <strong>{{ next_screening.start_at|date:"H:i" }}</strong>
+                        <span>{{ next_screening.room.name }}</span>
+                        <small>desde {{ next_screening.base_price }}{{ site_settings.currency_symbol }}</small>
+                    </div>
+                {% endwith %}
+            {% endif %}
+
             <div class="cinema-feature-actions">
                 {% if screening_days %}<a class="cinema-cta" href="#sesiones">Elegir sesión</a>{% endif %}
                 <a class="cinema-cta secondary" href="#informacion">Sinopsis y reparto</a>

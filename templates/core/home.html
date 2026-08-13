@@ -24,6 +24,14 @@
                         </span>
                     </p>
                     {% if featured.description %}<p class="cinema-hero-description">{{ featured.description|truncatewords:36 }}</p>{% endif %}
+
+                    <div class="cinema-showtime-strip" aria-label="Próximo pase">
+                        <span class="cinema-showtime-label">Próximo pase</span>
+                        <strong>{{ featured.next_screening.start_at|date:"H:i" }}</strong>
+                        <span>{{ featured.next_screening.room.name }}</span>
+                        <small>desde {{ featured.next_screening.base_price }}{{ site_settings.currency_symbol }}</small>
+                    </div>
+
                     <div class="cinema-hero-actions">
                         <a class="cinema-cta" href="{% url 'core:screening_detail' featured.next_screening.pk %}">Elegir butacas</a>
                         <a class="cinema-cta secondary" href="{{ featured.get_absolute_url }}">Sinopsis y reparto</a>
@@ -48,7 +56,7 @@
 <section class="shell section" id="cartelera">
     <div class="section-heading">
         <div>
-            <p class="eyebrow">Programación viva</p>
+            <p class="eyebrow">En pantalla</p>
             <h2>Cartelera</h2>
         </div>
         {% if listing_movies %}<span class="cinema-section-note">Ordenada por la próxima sesión</span>{% endif %}
@@ -59,7 +67,7 @@
                 <article class="movie-card">
                     <a class="poster" href="{{ movie.get_absolute_url }}">
                         {% if movie.poster %}
-                            <img src="{{ movie.poster.url }}" alt="Póster de {{ movie.title }}">
+                            <img src="{{ movie.poster.url }}" alt="Póster de {{ movie.title }}" loading="lazy">
                         {% else %}
                             <span class="poster-placeholder">{{ movie.title|slice:":1" }}</span>
                         {% endif %}
@@ -78,8 +86,8 @@
         </div>
     {% else %}
         <div class="empty-state">
-            <h3>La sala está descansando.</h3>
-            <p>No hay películas actualmente en cartelera. Cuando se programe una sesión aparecerá aquí.</p>
+            <h3>No hay sesiones programadas</h3>
+            <p>Cuando se programe una película aparecerá aquí con su próximo horario.</p>
         </div>
     {% endif %}
 </section>
@@ -87,7 +95,7 @@
 {% if screening_groups %}
 <section class="shell section cinema-dynamic-schedule">
     <div class="section-heading">
-        <div><p class="eyebrow">Agenda</p><h2>Próximas sesiones</h2></div>
+        <div><p class="eyebrow">Horarios</p><h2>Próximas sesiones</h2></div>
         <span class="cinema-section-note">La primera disponible aparece destacada</span>
     </div>
 

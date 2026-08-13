@@ -1,10 +1,10 @@
 {% if ad %}<aside class="ad-card cinema-ad">
     {% if ad.media %}
         <div class="cinema-ad-media">
-            {% if ad.is_video %}
+            {% if ad.media_is_video %}
                 <video src="{{ ad.media.url }}" autoplay muted loop playsinline aria-label="Publicidad: {{ ad.headline }}"></video>
             {% else %}
-                <img src="{{ ad.media.url }}" alt="">
+                <img src="{{ ad.media.url }}" alt="" loading="lazy">
             {% endif %}
         </div>
     {% endif %}
