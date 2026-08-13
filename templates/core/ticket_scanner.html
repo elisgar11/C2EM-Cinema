@@ -69,6 +69,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'vendor/qr-scanner/qr-scanner.umd.min.js' %}"></script>
+{% get_static_prefix as STATIC_PREFIX %}
+<script src="{{ STATIC_PREFIX }}vendor/qr-scanner/qr-scanner.umd.min.js"></script>
 <script src="{% static 'js/ticket-scanner.js' %}"></script>
 {% endblock %}
