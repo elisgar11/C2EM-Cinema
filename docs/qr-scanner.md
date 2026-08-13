@@ -40,6 +40,14 @@ Puedes revisar la configuración con:
 tailscale serve status
 ```
 
+Añade también el nombre `*.ts.net` concreto que Tailscale te muestre a `ALLOWED_HOSTS` de C2EM. Por ejemplo:
+
+```env
+ALLOWED_HOSTS=localhost,127.0.0.1,cine.mi-tailnet.ts.net
+```
+
+Si usas una configuración de proxy/orígenes más restrictiva, añade igualmente la URL HTTPS completa a `CSRF_TRUSTED_ORIGINS`.
+
 ## Compatibilidad del decodificador
 
 C2EM empaqueta `qr-scanner` 1.4.2 dentro de la imagen Docker. El navegador usa `BarcodeDetector` cuando lo soporta y el worker del propio paquete como fallback cuando no lo soporta. El navegador no necesita cargar scripts desde un CDN.
