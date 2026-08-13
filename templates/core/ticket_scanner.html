@@ -10,18 +10,28 @@
         <div>
             <p class="eyebrow">Acceso staff</p>
             <h1>Escáner de entradas</h1>
-            <p>Escanea el QR de una entrada o introduce manualmente su código.</p>
+            <p>Escanea el QR de una entrada, toma una foto del código o introdúcelo manualmente.</p>
         </div>
     </div>
 
     <div class="scanner-grid">
         <article class="scanner-camera-card">
-            <div class="scanner-camera" id="camera-shell">
+            <div class="scanner-camera" id="camera-shell" data-scanner-state="neutral">
                 <video id="scanner-video" playsinline muted></video>
                 <div class="scanner-frame" aria-hidden="true"></div>
-                <p id="camera-status">Activa la cámara para leer códigos QR.</p>
+                <p id="camera-status" role="status" aria-live="polite">Comprobando disponibilidad de la cámara…</p>
             </div>
-            <button class="button wide" id="start-camera" type="button">Activar cámara</button>
+
+            <div class="scanner-actions">
+                <button class="button wide" id="start-camera" type="button">Activar cámara</button>
+                <label class="button wide scanner-photo-button" for="scanner-photo">Escanear desde foto</label>
+                <input id="scanner-photo" class="scanner-photo-input" type="file" accept="image/*" capture="environment">
+                <button class="button wide scanner-flash-button" id="toggle-flash" type="button" hidden>Encender linterna</button>
+            </div>
+
+            <p class="scanner-help">
+                La cámara en directo requiere HTTPS o localhost. Si accedes por una IP HTTP, usa “Escanear desde foto” o activa HTTPS para el cine.
+            </p>
         </article>
 
         <article class="scanner-manual-card">
@@ -59,68 +69,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    (() => {
-        const startButton = document.getElementById("start-camera");
-        const video = document.getElementById("scanner-video");
-        const status = document.getElementById("camera-status");
-        const form = document.getElementById("scanner-form");
-        const input = document.getElementById("scanner-value");
-        let stream = null;
-        let stopped = false;
-        let submitting = false;
-
-        function stopCamera() {
-            stopped = true;
-            if (stream) stream.getTracks().forEach((track) => track.stop());
-            stream = null;
-        }
-
-        async function startCamera() {
-            if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
-                status.textContent = "Este navegador no permite escaneo QR directo. Usa el código manual.";
-                startButton.disabled = true;
-                return;
-            }
-
-            stopped = false;
-            startButton.disabled = true;
-            status.textContent = "Solicitando acceso a la cámara…";
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { ideal: "environment" } },
-                    audio: false,
-                });
-                video.srcObject = stream;
-                await video.play();
-                status.textContent = "Apunta al QR de la entrada.";
-                const detector = new BarcodeDetector({ formats: ["qr_code"] });
-
-                async function scan() {
-                    if (stopped || submitting) return;
-                    try {
-                        const codes = await detector.detect(video);
-                        if (codes.length && codes[0].rawValue) {
-                            submitting = true;
-                            input.value = codes[0].rawValue;
-                            stopCamera();
-                            form.submit();
-                            return;
-                        }
-                    } catch (error) {
-                        status.textContent = "No se ha podido leer la cámara. Puedes usar el código manual.";
-                    }
-                    setTimeout(scan, 250);
-                }
-                scan();
-            } catch (error) {
-                status.textContent = "No se pudo acceder a la cámara. Revisa el permiso o usa el código manual.";
-                startButton.disabled = false;
-            }
-        }
-
-        startButton.addEventListener("click", startCamera);
-        window.addEventListener("pagehide", stopCamera);
-    })();
-</script>
+{% get_static_prefix as STATIC_PREFIX %}
+<script src="{{ STATIC_PREFIX }}vendor/qr-scanner/qr-scanner.umd.min.js"></script>
+<script src="{% static 'js/ticket-scanner.js' %}"></script>
 {% endblock %}
