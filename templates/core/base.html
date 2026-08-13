@@ -6,12 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="{{ site_settings.primary_color|default:'#e50914' }}">
     <title>{% block title %}{{ site_settings.cinema_name|default:"Mi cine" }}{% endblock %}</title>
+    <script>document.documentElement.classList.add("js");</script>
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <link rel="stylesheet" href="{% static 'css/features.css' %}">
     <link rel="stylesheet" href="{% static 'css/cinema.css' %}">
     <link rel="stylesheet" href="{% static 'css/cinema-media.css' %}">
     <link rel="stylesheet" href="{% static 'css/dynamic-listings.css' %}">
     {% block head %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'css/cinema-redesign.css' %}">
+    <script defer src="{% static 'js/cinema-motion.js' %}"></script>
 </head>
 <body class="cinema-body" style="--primary: {{ site_settings.primary_color|default:'#e50914' }}">
     <header class="cinema-header">
@@ -48,14 +51,14 @@
         <div class="cinema-footer-inner">
             <div>
                 <strong>{{ site_settings.cinema_name|default:"Mi cine" }}</strong>
-                <span>Cine privado · hecho para compartir una buena película</span>
+                <span>Cine privado · cartelera, sala y entrada en un solo lugar</span>
                 {% if movie_metadata_provider == "tmdb" %}
                     <small>This product uses the TMDB API but is not endorsed or certified by TMDB.</small>
                 {% elif movie_metadata_provider == "wikidata" %}
                     <small>Metadatos de películas obtenidos de Wikidata; algunas imágenes pueden proceder de Wikimedia Commons.</small>
                 {% endif %}
             </div>
-            <a href="{% url 'core:reservation_lookup' %}">Buscar entrada</a>
+            <a href="{% url 'core:reservation_lookup' %}">Recuperar entrada</a>
         </div>
     </footer>
     {% block scripts %}{% endblock %}
