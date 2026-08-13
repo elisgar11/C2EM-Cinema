@@ -130,6 +130,12 @@ if IS_VERCEL:
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+USE_VERCEL_BLOB = bool(
+    os.environ.get("BLOB_READ_WRITE_TOKEN")
+    or os.environ.get("BLOB_STORE_ID")
+    or os.environ.get("VERCEL_OIDC_TOKEN")
+)
+
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
@@ -138,8 +144,13 @@ STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
+if USE_VERCEL_BLOB:
+    STORAGES["default"] = {"BACKEND": "config.storage_vercel_blob.VercelBlobStorage"}
+
 MEDIA_URL = "/media/"
-if IS_VERCEL:
+if USE_VERCEL_BLOB:
+    MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
+elif IS_VERCEL:
     media_root = Path("/tmp/c2em-media")
     media_root.mkdir(parents=True, exist_ok=True)
     MEDIA_ROOT = media_root
@@ -151,7 +162,7 @@ MOVIE_METADATA_FALLBACK_PROVIDER = os.environ.get("MOVIE_METADATA_FALLBACK_PROVI
 MOVIE_METADATA_AUTO_FETCH = os.environ.get("MOVIE_METADATA_AUTO_FETCH", "true").lower() in {"1", "true", "yes", "on"}
 MOVIE_METADATA_FETCH_IMAGES = os.environ.get(
     "MOVIE_METADATA_FETCH_IMAGES",
-    "false" if IS_VERCEL else "true",
+    "true" if USE_VERCEL_BLOB else ("false" if IS_VERCEL else "true"),
 ).lower() in {"1", "true", "yes", "on"}
 MOVIE_METADATA_IMAGE_TIMEOUT_SECONDS = os.environ.get("MOVIE_METADATA_IMAGE_TIMEOUT_SECONDS", "8")
 MOVIE_METADATA_IMAGE_MAX_BYTES = int(os.environ.get("MOVIE_METADATA_IMAGE_MAX_BYTES", str(15 * 1024 * 1024)))

@@ -5,3 +5,4 @@ qrcode>=8,<9
 whitenoise>=6.9,<7
 dj-database-url>=2,<3
 psycopg[binary]>=3,<4
+vercel>=0.3,<1
