@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#050506">
     <title>Pre-show · {{ screening.movie.title }}</title>
     <link rel="stylesheet" href="{% static 'css/features.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cinema-redesign.css' %}">
 </head>
 <body class="preshow-body" style="--primary: {{ site_settings.primary_color|default:'#e50914' }}" data-start="{{ screening.start_at|date:'c' }}">
     <main class="preshow" aria-live="polite">
