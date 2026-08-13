@@ -25,7 +25,7 @@ class QrScannerInterfaceTests(TestCase):
         self.assertContains(response, "Escanear desde foto")
         self.assertContains(response, 'id="scanner-value"')
         self.assertContains(response, "vendor/qr-scanner/qr-scanner.umd.min.js")
-        self.assertContains(response, "js/ticket-scanner.js")
+        self.assertContains(response, "/static/js/ticket-scanner.")
 
     def test_scanner_client_diagnoses_insecure_context_and_camera_errors(self):
         source = (Path(settings.BASE_DIR) / "static/js/ticket-scanner.js").read_text()
