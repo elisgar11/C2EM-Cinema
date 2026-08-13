@@ -5,11 +5,17 @@
 
 {% block content %}
 <section class="shell section narrow booking-step">
-    <div class="section-heading"><div><p class="eyebrow">Paso 3 de 3</p><h1>Confirma tu reserva</h1></div></div>
+    <div class="cinema-booking-progress" aria-label="Paso 3 de 3">
+        <span class="is-done"></span><span class="is-done"></span><span class="is-active"></span>
+    </div>
+    <div class="section-heading split-heading">
+        <div><p class="eyebrow">Paso 3 de 3 · Confirmación</p><h1>Todo listo para entrar</h1></div>
+        <div class="session-summary"><strong>{{ summary.screening.start_at|date:"j M · H:i" }}</strong><span>{{ summary.screening.room.name }}</span></div>
+    </div>
 
     <div class="checkout-grid">
         <div class="summary-card">
-            <p class="eyebrow">Sesión</p>
+            <p class="eyebrow">Tu sesión</p>
             <h2>{{ summary.screening.movie.title }}</h2>
             <p>{{ summary.screening.start_at|date:"l j \d\e F · H:i" }} · {{ summary.screening.room.name }}</p>
             <hr>
@@ -24,8 +30,8 @@
             {% csrf_token %}
             <label>Nombre <span>*</span><input type="text" name="customer_name" maxlength="150" required autocomplete="name" value="{{ customer_name|default:'' }}" placeholder="¿A nombre de quién?"></label>
             <label>Notas <textarea name="notes" rows="4" placeholder="Opcional: alguna petición o comentario">{{ notes|default:'' }}</textarea></label>
-            <p class="form-note">No se realizará ningún pago real. Al confirmar, las butacas quedarán reservadas.</p>
-            <button class="button wide" type="submit">Confirmar reserva · {{ summary.total }}{{ site_settings.currency_symbol }}</button>
+            <p class="form-note">No se realizará ningún pago real. Al confirmar, las butacas quedan reservadas y se genera tu entrada con QR.</p>
+            <button class="button wide" type="submit">Confirmar y generar entrada · {{ summary.total }}{{ site_settings.currency_symbol }}</button>
         </form>
     </div>
 </section>
