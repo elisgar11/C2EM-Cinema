@@ -69,6 +69,15 @@ if database_url:
             conn_health_checks=True,
         )
     }
+elif IS_VERCEL:
+    vercel_db_path = Path("/tmp/c2em-db.sqlite3")
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": vercel_db_path,
+            "OPTIONS": {"timeout": 20},
+        }
+    }
 else:
     db_path = Path(os.environ.get("SQLITE_PATH", BASE_DIR / "data" / "db.sqlite3"))
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -99,6 +108,8 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 if IS_VERCEL:
+    if ".vercel.app" not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(".vercel.app")
     for env_name in (
         "VERCEL_URL",
         "VERCEL_BRANCH_URL",
@@ -110,6 +121,8 @@ if IS_VERCEL:
         origin = f"https://{host}"
         if host and origin not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(origin)
+    if "https://*.vercel.app" not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append("https://*.vercel.app")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
