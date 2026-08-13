@@ -14,15 +14,19 @@
     window.addEventListener("scroll", updateHeader, { passive: true });
 
     const selectors = [
+        ".cinema-showtime-strip",
         ".section-heading",
         ".movie-card",
         ".cinema-schedule-group",
+        ".cinema-feature-poster",
         ".cinema-synopsis-panel",
         ".cinema-cast-panel",
         ".screening-day",
+        ".seat-legend",
         ".shop-card",
         ".summary-card",
         ".customer-form",
+        ".confirmation",
         ".ticket",
         ".ticket-staff",
         ".lookup-card",
