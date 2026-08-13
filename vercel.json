@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "sh scripts/vercel_build.sh",
+  "functions": {
+    "config/wsgi.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{.git/**,.github/**,data/**,media/**,docs/**,**/*.md,**/__pycache__/**,**/*.pyc,**/test_*.py,**/*_test.py,**/tests.py,catalog/test_*.py,core/test_*.py}"
+    },
+    "config/asgi.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{.git/**,.github/**,data/**,media/**,docs/**,**/*.md,**/__pycache__/**,**/*.pyc,**/test_*.py,**/*_test.py,**/tests.py,catalog/test_*.py,core/test_*.py}"
+    }
+  }
+}

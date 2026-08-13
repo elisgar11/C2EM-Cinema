@@ -3,6 +3,8 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+IS_VERCEL = os.environ.get("VERCEL", "").lower() in {"1", "true", "yes", "on"}
+
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me")
 DEBUG = os.environ.get("DEBUG", "true").lower() in {"1", "true", "yes", "on"}
 ALLOWED_HOSTS = [
@@ -53,17 +55,30 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
-ASGI_APPLICATION = "config.asgi.application"
+if not IS_VERCEL:
+    ASGI_APPLICATION = "config.asgi.application"
 
-DB_PATH = Path(os.environ.get("SQLITE_PATH", BASE_DIR / "data" / "db.sqlite3"))
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": DB_PATH,
-        "OPTIONS": {"timeout": 20},
+database_url = os.environ.get("DATABASE_URL", "").strip()
+if database_url:
+    import dj_database_url
+
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=database_url,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    db_path = Path(os.environ.get("SQLITE_PATH", BASE_DIR / "data" / "db.sqlite3"))
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": db_path,
+            "OPTIONS": {"timeout": 20},
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -82,6 +97,20 @@ CSRF_TRUSTED_ORIGINS = [
     for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
     if origin.strip()
 ]
+
+if IS_VERCEL:
+    for env_name in (
+        "VERCEL_URL",
+        "VERCEL_BRANCH_URL",
+        "VERCEL_PROJECT_PRODUCTION_URL",
+    ):
+        host = os.environ.get(env_name, "").strip()
+        if host and host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host)
+        origin = f"https://{host}"
+        if host and origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(origin)
+
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 STATIC_URL = "/static/"
@@ -93,12 +122,20 @@ STORAGES = {
 }
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
+if IS_VERCEL:
+    media_root = Path("/tmp/c2em-media")
+    media_root.mkdir(parents=True, exist_ok=True)
+    MEDIA_ROOT = media_root
+else:
+    MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
 MOVIE_METADATA_PROVIDER = os.environ.get("MOVIE_METADATA_PROVIDER", "tmdb")
 MOVIE_METADATA_FALLBACK_PROVIDER = os.environ.get("MOVIE_METADATA_FALLBACK_PROVIDER", "wikidata")
 MOVIE_METADATA_AUTO_FETCH = os.environ.get("MOVIE_METADATA_AUTO_FETCH", "true").lower() in {"1", "true", "yes", "on"}
-MOVIE_METADATA_FETCH_IMAGES = os.environ.get("MOVIE_METADATA_FETCH_IMAGES", "true").lower() in {"1", "true", "yes", "on"}
+MOVIE_METADATA_FETCH_IMAGES = os.environ.get(
+    "MOVIE_METADATA_FETCH_IMAGES",
+    "false" if IS_VERCEL else "true",
+).lower() in {"1", "true", "yes", "on"}
 MOVIE_METADATA_IMAGE_TIMEOUT_SECONDS = os.environ.get("MOVIE_METADATA_IMAGE_TIMEOUT_SECONDS", "8")
 MOVIE_METADATA_IMAGE_MAX_BYTES = int(os.environ.get("MOVIE_METADATA_IMAGE_MAX_BYTES", str(15 * 1024 * 1024)))
 TMDB_API_TOKEN = os.environ.get("TMDB_API_TOKEN", "")
